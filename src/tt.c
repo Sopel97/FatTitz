@@ -45,10 +45,12 @@ void tt_free(void)
 }
 
 
-// tt_allocate() allocates the transposition table, measured in megabytes.
-
-void tt_allocate(size_t mbSize)
+void tt_reallocate(size_t mbSize)
 {
+  size_t oldClusterCount = TT.clusterCount;
+  Cluster* oldTable = TT.table;
+  alloc_t oldAlloc = TT.alloc;
+
   TT.clusterCount = mbSize * 1024 * 1024 / sizeof(Cluster);
   size_t size = TT.clusterCount * sizeof(Cluster);
 
@@ -66,12 +68,40 @@ void tt_allocate(size_t mbSize)
   }
   if (!TT.table)
     TT.table = allocate_memory(size, false, &TT.alloc);
+  if (!TT.table && oldTable)
+  {
+    TT.table = oldTable;
+    oldTable = NULL;
+  }
   if (!TT.table)
     goto failed;
 
   // Clear the TT table to page in the memory immediately. This avoids
   // an initial slow down during the first second or minutes of the search.
   tt_clear();
+
+  if (oldTable)
+  {
+    for (size_t i = 0; i < oldClusterCount; ++i)
+    {
+      for (size_t j = 0; j < ClusterSize; ++j)
+      {
+        bool found;
+        TTEntry* source = &(oldTable[i].entry[j]);
+        if (source->depth8)
+        {
+          TTEntry* tte = tt_probe(source->key, &found);
+          if (source->depth8 > tte->depth8)
+          {
+            *tte = *source;
+          }
+        }
+      }
+    }
+
+    free_memory(&oldAlloc);
+  }
+
   return;
 
 failed:
@@ -79,7 +109,6 @@ failed:
                   "transposition table.\n", (uint64_t)mbSize);
   exit(EXIT_FAILURE);
 }
-
 
 // tt_clear() initialises the entire transposition table to zero.
 
