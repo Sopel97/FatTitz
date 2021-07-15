@@ -125,11 +125,10 @@ void tt_clear_worker(int idx)
 TTEntry *tt_probe(Key key, bool *found)
 {
   TTEntry *tte = tt_first_entry(key);
-  uint16_t key16 = key; // Use the low 16 bits as key inside the cluster
 
   for (int i = 0; i < ClusterSize; i++)
-    if (tte[i].key16 == key16 || !tte[i].depth8) {
-//      if ((tte[i].genBound8 & 0xF8) != TT.generation8 && tte[i].key16)
+    if (tte[i].key == key || !tte[i].depth8) {
+//      if ((tte[i].genBound8 & 0xF8) != TT.generation8 && tte[i].key)
       tte[i].genBound8 = TT.generation8 | (tte[i].genBound8 & 0x7); // Refresh
       *found = tte[i].depth8;
       return &tte[i];
