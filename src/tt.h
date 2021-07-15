@@ -142,4 +142,7 @@ void tt_reallocate(size_t mbSize);
 void tt_clear(void);
 void tt_clear_worker(int idx);
 
+size_t tt_serialize(const char* filename, int minEntryDepth);
+size_t tt_deserialize(const char* filename);
+
 #endif

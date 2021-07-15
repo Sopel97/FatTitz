@@ -192,3 +192,101 @@ int tt_hashfull(void)
   }
   return cnt * 1000 / (ClusterSize * (1000 / ClusterSize));
 }
+
+size_t tt_serialize(const char* filename, int minEntryDepth)
+{
+  assert(minEntryDepth < 256);
+  assert(minEntryDepth >= 0);
+
+  FILE* f = fopen(filename, "wb");
+  fwrite("SFTT", 1, 4, f); // magic
+  fwrite("\0", 1, 1, f); // version
+  for (int i = 0; i < 91; ++i)
+  {
+    fwrite("\0", 1, 1, f); // fen
+  }
+  fwrite("\0\0\0\0\0\0\0\0", 1, 8, f); // nodes
+  fwrite("\0", 1, 1, f); // root depth
+  uint8_t d = minEntryDepth;
+  fwrite(&d, 1, 1, f); // min entry depth
+  for (int i = 0; i < 22; ++i)
+  {
+    fwrite("\0", 1, 1, f); // reserved
+  }
+
+  size_t numWritten = 0;
+  for (size_t i = 0; i < TT.clusterCount; ++i)
+  {
+    for (size_t j = 0; j < ClusterSize; ++j)
+    {
+      TTEntry* tte = &(TT.table[i].entry[j]);
+      if (tte->depth8)
+      {
+        int actualDepth = tte->depth8 + DEPTH_OFFSET;
+        if (actualDepth >= minEntryDepth)
+        {
+          fwrite(tte, 16, 1, f);
+          ++numWritten;
+          if (numWritten % 1000000 == 0)
+          {
+            printf("info Serialized %zu entries so far...\n", numWritten);
+          }
+        }
+      }
+    }
+  }
+
+  fclose(f);
+
+  return numWritten;
+}
+
+size_t tt_deserialize(const char* filename)
+{
+  FILE* f = fopen(filename, "rb");
+  char buf[4];
+  if (fread(buf, 1, 4, f) != 4)
+  {
+    fclose(f);
+    return 0;
+  }
+
+  if (buf[0] != 'S' || buf[1] != 'F' || buf[2] != 'T' || buf[3] != 'T')
+  {
+    printf("Invalid magic.\n");
+    fclose(f);
+    return 0;
+  }
+
+  char header[124];
+  if (fread(header, 1, 124, f) != 124)
+  {
+    printf("Invalid header.\n");
+    fclose(f);
+    return 0;
+  }
+
+  size_t numRead = 0;
+  process_delayed_settings();
+
+  TTEntry entry;
+  while (fread(&entry, 16, 1, f) == 1)
+  {
+    bool found;
+    TTEntry* tte = tt_probe(entry.key, &found);
+    (void)found;
+    if (entry.depth8 > tte->depth8)
+    {
+      *tte = entry;
+      ++numRead;
+      if (numRead % 1000000 == 0)
+      {
+        printf("info Deserialized %zu entries so far...\n", numRead);
+      }
+    }
+  }
+
+  fclose(f);
+
+  return numRead;
+}
