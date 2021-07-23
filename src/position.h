@@ -91,6 +91,7 @@ struct Stack {
   Value staticEval;
   Value statScore;
   int moveCount;
+  int doubleExtensions;
   bool ttPv;
   bool ttHit;
   uint8_t ply;

@@ -747,6 +747,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   (ss+1)->ttPv = false;
   (ss+1)->excludedMove = bestMove = 0;
   (ss+2)->killers[0] = (ss+2)->killers[1] = 0;
+  ss->doubleExtensions = (ss-1)->doubleExtensions;
   Square prevSq = to_sq((ss-1)->currentMove);
 
   // Initialize statScore to zero for the grandchildren of the current
@@ -1177,8 +1178,14 @@ moves_loop: // When in check search starts from here
       if (value < singularBeta) {
         extension = 1;
         singularQuietLMR = !ttCapture;
-        if (!PvNode && value < singularBeta - 93)
+
+        // Avoid search explosion by limiting the number of double extensions to at most 3
+        if (   !PvNode
+            && value < singularBeta - 93
+            && ss->doubleExtensions < 3)
+        {
           extension = 2;
+        }
       }
 
       // Multi-cut pruning. Our ttMove is assumed to fail high, and now we
@@ -1223,6 +1230,7 @@ moves_loop: // When in check search starts from here
 
     // Add extension to new depth
     newDepth += extension;
+    ss->doubleExtensions = (ss-1)->doubleExtensions + (extension == 2);
 
     // Speculative prefetch as early as possible
     prefetch(tt_first_entry(key_after(pos, move)));
