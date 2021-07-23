@@ -132,7 +132,7 @@ static int extract_ponder_from_tt(RootMove *rm, Position *pos);
 void search_init(void)
 {
   for (int i = 1; i < MAX_MOVES; i++)
-    Reductions[i] = (21.3 + 2 * log(Threads.numThreads)) * log(i + 0.25 * log(i));
+    Reductions[i] = (21.3 * log(i + 0.25 * log(i)));
 }
 
 
