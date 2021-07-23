@@ -780,7 +780,7 @@ static Value evaluate_classical(const Position *pos)
   // in the position struct (material + piece square tables) and the
   // material imbalance. Score is computed internally from the white point
   // of view.
-  Score score = psq_score() + material_imbalance(ei.me) + pos->contempt;
+  Score score = psq_score() + material_imbalance(ei.me) + pos->trend;
 
   // Probe the pawn hash table
   ei.pe = pawn_probe(pos);

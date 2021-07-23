@@ -36,8 +36,6 @@ enum {
 };
 
 enum {
-  OPT_CONTEMPT,
-  OPT_ANALYSIS_CONTEMPT,
   OPT_THREADS,
   OPT_HASH,
   OPT_CLEAR_HASH,

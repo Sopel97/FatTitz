@@ -241,14 +241,7 @@ void mainthread_search(void)
   }
 #endif
 
-  base_ct = option_value(OPT_CONTEMPT) * PawnValueEg / 100;
-
-  const char *s = option_string_value(OPT_ANALYSIS_CONTEMPT);
-  if (Limits.infinite || option_value(OPT_ANALYSE_MODE))
-    base_ct =  strcmp(s, "off") == 0 ? 0
-             : strcmp(s, "white") == 0 && us == BLACK ? -base_ct
-             : strcmp(s, "black") == 0 && us == WHITE ? -base_ct
-             : base_ct;
+  pos->trend = 0;
 
   if (pos->rootMoves->size > 0) {
     Move bookMove = 0;
@@ -459,9 +452,6 @@ void thread_search(Position *pos)
     for (int idx = 0; idx < rm->size; idx++)
       rm->move[idx].previousScore = rm->move[idx].score;
 
-    pos->contempt = stm() == WHITE ?  make_score(base_ct, base_ct / 2)
-                                   : -make_score(base_ct, base_ct / 2);
-
     int pvFirst = 0, pvLast = 0;
 
     if (!Threads.increaseDepth)
@@ -496,9 +486,10 @@ void thread_search(Position *pos)
         beta  = min(previousScore + delta,  VALUE_INFINITE);
 
         // Adjust contempt based on root move's previousScore
-        int ct = base_ct + (113 - base_ct / 2) * previousScore / (abs(previousScore) + 147);
-        pos->contempt = stm() == WHITE ?  make_score(ct, ct / 2)
-                                       : -make_score(ct, ct / 2);
+
+        int tr = 113 * previousScore / (abs(previousScore) + 147);
+        pos->trend = stm() == WHITE ?  make_score(tr, tr / 2)
+                                    : -make_score(tr, tr / 2);
       }
 
       // Start with a small aspiration window and, in the case of a fail
