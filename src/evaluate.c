@@ -869,7 +869,7 @@ static Value fix_FRC(const Position *pos)
 }
 
 #define adjusted_NNUE() \
-  (nnue_evaluate(pos) * (903 + mat) / 1024 \
+  (nnue_evaluate(pos, true) * (903 + mat) / 1024 \
    + (is_chess960() ? fix_FRC(pos) : 0))
 
 #endif

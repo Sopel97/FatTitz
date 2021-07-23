@@ -312,7 +312,7 @@ struct NetData {
 };
 
 // Evaluation function
-Value nnue_evaluate(const Position *pos)
+Value nnue_evaluate(const Position *pos, bool adjusted)
 {
   int32_t out_value;
   alignas(8) mask_t hidden1_mask[1024 / (8 * sizeof(mask_t))];
@@ -354,7 +354,18 @@ Value nnue_evaluate(const Position *pos)
     _mm_empty();
   #endif
 
-    return (out_value + psqt_val) / FV_SCALE;
+    int materialist = psqt_val;
+    int positional = out_value;
+
+    int delta_npm = abs(non_pawn_material_c(WHITE) - non_pawn_material_c(BLACK));
+    int entertainment = (adjusted && delta_npm <= BishopValueMg - KnightValueMg ? 7 : 0);
+
+    int A = 128 - entertainment;
+    int B = 128 + entertainment;
+
+    int sum = (A * materialist + B * positional) / 128;
+
+    return sum / FV_SCALE;
   }
 }
 
