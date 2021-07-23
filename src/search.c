@@ -603,7 +603,8 @@ skip_search:
         Threads.pos[i]->bestMoveChanges = 0;
       }
 
-      double bestMoveInstability = 1 + 2 * totBestMoveChanges / Threads.numThreads;
+      double bestMoveInstability = 1.073 + max(1.0, 2.25 - 9.9 / pos->rootDepth)
+                                          * totBestMoveChanges / Threads.numThreads;
 
       double totalTime = time_optimum() * fallingEval * reduction * bestMoveInstability;
 
