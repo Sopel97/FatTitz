@@ -83,8 +83,7 @@ enum {
   LazyThreshold1 =  1565,
   LazyThreshold2 =  1102,
   SpaceThreshold = 11551,
-  NNUEThreshold1 =   800,
-  NNUEThreshold2 =   176
+  NNUEThreshold1 =   800
 };
 
 // KingAttackWeights[PieceType] contains king attack weights by piece type
@@ -885,20 +884,9 @@ Value evaluate(const Position *pos)
     Value psq = abs(eg_value(psq_score()));
     int r50 = 16 + rule50_count();
     bool largePsq = psq * 16 > (NNUEThreshold1 + non_pawn_material() / 64) * r50;
-    bool classical = largePsq;
 
-    bool lowPieceEndgame =   non_pawn_material() == BishopValueMg
-                          || (non_pawn_material() < 2 * RookValueMg
-                              && popcount(pieces_p(PAWN)) < 2);
-    v = classical || lowPieceEndgame ? evaluate_classical(pos)
-                                     : adjusted_NNUE();
-
-    if (   classical && largePsq && !lowPieceEndgame
-        && (   abs(v) * 16 < NNUEThreshold2 * r50
-            || (   opposite_bishops(pos)
-                && abs(v) * 16 < (NNUEThreshold1 + non_pawn_material() / 64) * r50)))
-      v = adjusted_NNUE();
-
+    v = largePsq ? evaluate_classical(pos)
+                 : adjusted_NNUE();
   } else if (useNNUE == EVAL_PURE)
     v = adjusted_NNUE();
   else
