@@ -5,8 +5,6 @@
 
 #define DefaultEvalFile "nn-8a08400ed089.nnue"
 
-enum { Tempo = 28 };
-
 #ifdef NNUE
 enum { EVAL_HYBRID, EVAL_PURE, EVAL_CLASSICAL };
 #ifndef NNUE_PURE

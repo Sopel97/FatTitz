@@ -836,7 +836,7 @@ make_v:
   v = (v / 16) * 16;
 
   // Side to move point of view
-  v = (stm() == WHITE ? v : -v) + Tempo;
+  v = (stm() == WHITE ? v : -v);
 
   return v;
 }
@@ -870,7 +870,7 @@ static Value fix_FRC(const Position *pos)
 
 #define adjusted_NNUE() \
   (nnue_evaluate(pos) * (903 + mat) / 1024 \
-   + Time.tempoNNUE + (is_chess960() ? fix_FRC(pos) : 0))
+   + (is_chess960() ? fix_FRC(pos) : 0))
 
 #endif
 

@@ -885,7 +885,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
     if ((ss-1)->currentMove != MOVE_NULL)
       ss->staticEval = eval = evaluate(pos);
     else
-      ss->staticEval = eval = -(ss-1)->staticEval + 2 * Tempo;
+      ss->staticEval = eval = -(ss-1)->staticEval;
 
     tte_save(tte, posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, 0,
         eval);
@@ -895,7 +895,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
       && !(ss-1)->checkersBB
       && !captured_piece())
   {
-    int bonus = clamp(-depth * 4 * ((ss-1)->staticEval + ss->staticEval - 2 * Tempo), -1000, 1000);
+    int bonus = clamp(-depth * 4 * ((ss-1)->staticEval + ss->staticEval), -1000, 1000);
     history_update(*pos->mainHistory, !stm(), (ss-1)->currentMove, bonus);
   }
 
@@ -1556,7 +1556,7 @@ INLINE Value qsearch_node(Position *pos, Stack *ss, Value alpha, Value beta,
     } else
       ss->staticEval = bestValue =
       (ss-1)->currentMove != MOVE_NULL ? evaluate(pos)
-                                       : -(ss-1)->staticEval + 2 * Tempo;
+                                       : -(ss-1)->staticEval;
 
     // Stand pat. Return immediately if static value is at least beta
     if (bestValue >= beta) {
