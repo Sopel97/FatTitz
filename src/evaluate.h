@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-#define DefaultEvalFile "nn-3b20abec10c1.nnue"
+#define DefaultEvalFile "nn-aa9d7eeb397e.nnue"
 
 #ifdef NNUE
 enum { EVAL_HYBRID, EVAL_PURE, EVAL_CLASSICAL };
