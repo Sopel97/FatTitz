@@ -1044,6 +1044,7 @@ moves_loop: // When in check search starts from here
 
   value = bestValue;
   singularQuietLMR = moveCountPruning = false;
+  bool doubleExtension = false;
 
   // Indicate PvNodes that will probably fail low if node was searched with
   // non-PV search at depth equal to or greater than current depth and the
@@ -1185,6 +1186,7 @@ moves_loop: // When in check search starts from here
             && ss->doubleExtensions < 3)
         {
           extension = 2;
+          doubleExtension = true;
         }
       }
 
@@ -1303,7 +1305,7 @@ moves_loop: // When in check search starts from here
           r -= ss->statScore / 14721;
       }
 
-      Depth d = clamp(newDepth - r, 1, newDepth + (r < -1 && moveCount <= 5));
+      Depth d = clamp(newDepth - r, 1, newDepth + (r < -1 && moveCount <= 5 && !doubleExtension));
 
       value = -search_NonPV(pos, ss+1, -(alpha+1), d, 1);
 
