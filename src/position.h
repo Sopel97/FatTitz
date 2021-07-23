@@ -169,7 +169,6 @@ struct Position {
   Depth rootDepth;
   Depth completedDepth;
   Score contempt;
-  int failedHighCnt;
 
   // Pointers to thread-specific tables.
   CounterMoveStat *counterMoves;
