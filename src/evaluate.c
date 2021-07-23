@@ -80,8 +80,8 @@ static const Bitboard KingFlank[8] = {
 
 // Thresholds for lazy and space evaluation
 enum {
-  LazyThreshold1 =  1565,
-  LazyThreshold2 =  1102,
+  LazyThreshold1 =  3130,
+  LazyThreshold2 =  2204,
   SpaceThreshold = 11551
 };
 
@@ -786,7 +786,7 @@ static Value evaluate_classical(const Position *pos)
   score += ei.pe->score;
 
   // Early exit if score is high
-#define lazy_skip(v) (abs(mg_value(score) + eg_value(score)) / 2 > v + non_pawn_material() / 64)
+#define lazy_skip(v) (abs(mg_value(score) + eg_value(score)) > v + non_pawn_material() / 32)
   if (lazy_skip(LazyThreshold1))
     goto make_v;
 
