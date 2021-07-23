@@ -83,10 +83,10 @@ enum {
 };
 
 enum {
-  kHalfDimensions = 512,
+  kHalfDimensions = 1024,
   kPsqtBuckets = 8,
   kLayerStacks = 8,
-  FtInDims = 64 * PS_END, // 64 * 704
+  FtInDims = 32 * PS_END, // 32 * 704
 };
 
 // USE_MMX generates _mm_empty() instructions, so undefine if not needed
@@ -94,7 +94,7 @@ enum {
 #undef USE_MMX
 #endif
 
-static_assert(kHalfDimensions % 512 == 0, "kHalfDimensions should be a multiple of 512");
+static_assert(kHalfDimensions % 1024 == 0, "kHalfDimensions should be a multiple of 512");
 
 #define VECTOR
 
@@ -112,7 +112,7 @@ typedef __mmask64 mask_t;
 #define vec_mask_pos(a) _mm512_cmpgt_epi8_mask(a,_mm512_setzero_si512())
 #define vec_clip_8(a,b) _mm512_max_epi8(vec_packs(a,b),_mm512_setzero_si512())
 #define vec_zero_psqt() _mm256_setzero_si256()
-#define NUM_REGS 16 // only 16 are needed
+#define NUM_REGS 32
 #define NUM_PSQT_REGS 1
 
 #elif USE_AVX2
@@ -214,12 +214,13 @@ typedef uint8_t mask_t; // dummy
 #endif
 
 #ifdef NNUE_SPARSE
-typedef int8_t clipped_t;
-#if (defined(USE_MMX) || (defined(USE_SSE2))) && !(defined(USE_SSSE3) && !AVOID_USE_SSSE3)
+#if (defined(USE_MMX) || (defined(USE_SSE2))) && !(defined(USE_SSSE3))
 typedef int16_t weight_t_sparse, out_t_sparse;
 #else
 typedef int8_t weight_t_sparse, out_t_sparse;
 #endif
+#else
+#error "Not supported"
 #endif
 
 #if defined(USE_MMX) || (defined(USE_SSE2) && !defined(USE_SSSE3))
@@ -251,25 +252,69 @@ INLINE int neon_movemask(uint8x16_t v)
 }
 #endif
 
+static alignas(64) uint16_t LookupTableIndices[256][8];
+static alignas(64) uint8_t LookupTableCounts[256];
+
+static inline int lsb_constexpr(uint32_t v)
+{
+  int c = 0;
+  if (!v) return 32;
+  while (!(v & 1))
+  {
+    v >>= 1;
+    ++c;
+  }
+  return c;
+}
+
+void init_lookup()
+{
+  for (int i = 0; i < 256; ++i)
+  {
+    int j = i;
+    int k = 0;
+    while(j)
+    {
+      const int lsbIndex = lsb_constexpr(j);
+      j &= j - 1;
+      LookupTableIndices[i][k] = lsbIndex;
+      ++k;
+    }
+    LookupTableCounts[i] = k;
+  }
+}
+
 typedef struct {
   unsigned size;
   unsigned values[32];
 } IndexList;
 
-INLINE Square orient(Color c, Square s)
+INLINE Square orient(Color c, Square s, Square ksq)
 {
-  return s ^ (c == WHITE ? 0x00 : 0x38);
+  return s ^ (c * SQ_A8) ^ ((file_of(ksq) < FILE_E) * SQ_H1);
 }
+
+static const int KingBuckets[64] = {
+  -1, -1, -1, -1, 31, 30, 29, 28,
+  -1, -1, -1, -1, 27, 26, 25, 24,
+  -1, -1, -1, -1, 23, 22, 21, 20,
+  -1, -1, -1, -1, 19, 18, 17, 16,
+  -1, -1, -1, -1, 15, 14, 13, 12,
+  -1, -1, -1, -1, 11, 10, 9, 8,
+  -1, -1, -1, -1, 7, 6, 5, 4,
+  -1, -1, -1, -1, 3, 2, 1, 0
+};
 
 INLINE unsigned make_index(Color c, Square s, Piece pc, Square ksq)
 {
-  return orient(c, s) + PieceToIndex[c][pc] + PS_END * ksq;
+  int o_ksq = orient(c, ksq, ksq);
+  return orient(c, s, ksq) + PieceToIndex[c][pc] + PS_END * KingBuckets[o_ksq];
 }
 
 static void append_active_indices(const Position *pos, const Color c,
     IndexList *active)
 {
-  Square ksq = orient(c, square_of(c, KING));
+  Square ksq = square_of(c, KING);
   Bitboard bb = pieces();
   while (bb) {
     Square s = pop_lsb(&bb);
@@ -280,7 +325,7 @@ static void append_active_indices(const Position *pos, const Color c,
 static void append_changed_indices(const Position *pos, const Color c,
     const DirtyPiece *dp, IndexList *removed, IndexList *added)
 {
-  Square ksq = orient(c, square_of(c, KING));
+  Square ksq = square_of(c, KING);
   for (int i = 0; i < dp->dirtyNum; i++) {
     Piece pc = dp->pc[i];
     if (dp->from[i] != SQ_NONE)
@@ -293,73 +338,10 @@ static void append_changed_indices(const Position *pos, const Color c,
 INLINE int32_t output_layer(const clipped_t *input, const int32_t *biases,
     const weight_t *weights)
 {
-#if defined(USE_AVX2)
-  __m256i *iv = (__m256i *)input;
-  __m256i *row = (__m256i *)weights;
-#if defined(USE_VNNI)
-  __m256i prod = _mm256_dpbusd_epi32(_mm256_setzero_si256(), iv[0], row[0]);
-#else
-  __m256i prod = _mm256_maddubs_epi16(iv[0], row[0]);
-  prod = _mm256_madd_epi16(prod, _mm256_set1_epi16(1));
-#endif
-  __m128i sum = _mm_add_epi32(
-      _mm256_castsi256_si128(prod), _mm256_extracti128_si256(prod, 1));
-  sum = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0x1b));
-  return _mm_cvtsi128_si32(sum) + _mm_extract_epi32(sum, 1) + biases[0];
-
-#elif defined(USE_SSE2)
-  __m128i *iv = (__m128i *)input;
-  __m128i *row = (__m128i *)weights;
-#if defined(USE_SSSE3)
-  const __m128i kOnes = _mm_set1_epi16(1);
-  __m128i p0 = _mm_madd_epi16(_mm_maddubs_epi16(iv[0], row[0]), kOnes);
-  __m128i p1 = _mm_madd_epi16(_mm_maddubs_epi16(iv[1], row[1]), kOnes);
-  __m128i sum = _mm_add_epi32(p0, p1);
-#else
-  __m128i p0 = _mm_madd_epi16(iv[0], row[0]);
-  __m128i p1 = _mm_madd_epi16(iv[1], row[1]);
-  __m128i p2 = _mm_madd_epi16(iv[2], row[2]);
-  __m128i p3 = _mm_madd_epi16(iv[3], row[3]);
-  __m128i sum = _mm_add_epi32(_mm_add_epi32(p0, p1), _mm_add_epi32(p2, p3));
-#endif
-  sum = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0xb));
-#if defined(USE_SSE41)
-  return _mm_cvtsi128_si32(sum) + _mm_extract_epi32(sum, 1) + biases[0];
-#else
-  sum = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0x1));
-  return _mm_cvtsi128_si32(sum) + biases[0];
-#endif
-
-#elif defined(USE_MMX)
-  __m64 *iv = (__m64 *)input;
-  __m64 *row = (__m64 *)weights;
-  __m64 s0 = _mm_setzero_si64(), s1 = s0;
-  for (unsigned j = 0; j < 4; j++) {
-    s0 = _mm_add_pi32(s0, _mm_madd_pi16(row[2 * j], iv[2 * j]));
-    s1 = _mm_add_pi32(s1, _mm_madd_pi16(row[2 * j + 1], iv[2 * j + 1]));
-  }
-  __m64 sum = _mm_add_pi32(s0, s1);
-  sum = _mm_add_pi32(sum, _mm_unpackhi_pi32(sum, sum));
-  return _mm_cvtsi64_si32(sum) + biases[0];
-
-#elif defined(USE_NEON)
-  int8x8_t *iv = (int8x8_t *)input;
-  int8x8_t *row = (int8x8_t *)weights;
-  int32x4_t sum = {biases[0]};
-  for (unsigned j = 0; j < 2; j++) {
-    int16x8_t prod = vmull_s8(iv[2 * j], row[2 * j]);
-    prod = vmlal_s8(prod, iv[2 * j + 1], row[2 * j + 1]);
-    sum = vpadalq_s16(sum, prod);
-  }
-  return sum[0] + sum[1] + sum[2] + sum[3];
-
-#else
   int32_t sum = biases[0];
-  for (unsigned j = 0; j < 32; j++)
+  for (unsigned j = 0; j < 64; j++)
     sum += weights[j] * input[j];
   return sum;
-
-#endif
 }
 
 // Input feature converter
@@ -561,13 +543,12 @@ INLINE void update_accumulator(const Position *pos, const Color c)
 }
 
 // Convert input features
-INLINE bool transform(const Position *pos, clipped_t *output, mask_t *outMask, int32_t psqtBucket, int32_t* psqt_val)
+INLINE int transform(const Position *pos, clipped_t *output, uint16_t *nnz_indices, int32_t psqtBucket, int32_t* psqt_val)
 {
-  (void)outMask;
   update_accumulator(pos, WHITE);
   update_accumulator(pos, BLACK);
 
-  int16_t (*accumulation)[2][512] = &pos->st->accumulator.accumulation;
+  int16_t (*accumulation)[2][1024] = &pos->st->accumulator.accumulation;
   int32_t (*accumulation_psqt)[2][8] = &pos->st->accumulator.accumulation_psqt;
 
   const Color perspectives[2] = { stm(), !stm() };
@@ -577,45 +558,91 @@ INLINE bool transform(const Position *pos, clipped_t *output, mask_t *outMask, i
     - (*accumulation_psqt)[perspectives[1]][psqtBucket]
   ) / 2;
 
+  int num_nnz_indices = 0;
+  __m128i base = _mm_set1_epi16(0);
+  __m128i increment = _mm_set1_epi16(8);
+
   for (unsigned p = 0; p < 2; p++) {
     const unsigned offset = kHalfDimensions * p;
 
-#ifdef VECTOR
-    const unsigned numChunks = (16 * kHalfDimensions) / SIMD_WIDTH;
+#if defined (USE_AVX2)
 
-#if defined(NNUE_SPARSE) || defined(USE_SSSE3) || defined(USE_NEON)
+    const unsigned numChunks = (16 * kHalfDimensions) / 256;
     vec8_t *out = (vec8_t *)&output[offset];
     for (unsigned i = 0; i < numChunks / 2; i++) {
       vec16_t s0 = ((vec16_t *)(*accumulation)[perspectives[p]])[i * 2];
       vec16_t s1 = ((vec16_t *)(*accumulation)[perspectives[p]])[i * 2 + 1];
-#ifdef NNUE_SPARSE
       out[i] = vec_packs(s0, s1);
-      *outMask++ = vec_mask_pos(out[i]);
-#else
-      out[i] = vec_clip_8(s0, s1);
-#endif
+
+      unsigned nnz = _mm256_movemask_epi8(_mm256_cmpgt_epi8(out[i], _mm256_setzero_si256()));
+      unsigned b3 = (nnz >> 24) & 0xFF;
+      unsigned b2 = (nnz >> 16) & 0xFF;
+      unsigned b1 = (nnz >> 8) & 0xFF;
+      unsigned b0 = (nnz) & 0xFF;
+      unsigned c0 = LookupTableCounts[b0];
+      unsigned c1 = LookupTableCounts[b1];
+      unsigned c2 = LookupTableCounts[b2];
+      unsigned c3 = LookupTableCounts[b3];
+      _mm_storeu_si128(nnz_indices + num_nnz_indices, _mm_loadu_si128(&LookupTableIndices[b0]) + base);
+      num_nnz_indices += c0;
+      base += increment;
+      _mm_storeu_si128(nnz_indices + num_nnz_indices, _mm_loadu_si128(&LookupTableIndices[b1]) + base);
+      num_nnz_indices += c1;
+      base += increment;
+      _mm_storeu_si128(nnz_indices + num_nnz_indices, _mm_loadu_si128(&LookupTableIndices[b2]) + base);
+      num_nnz_indices += c2;
+      base += increment;
+      _mm_storeu_si128(nnz_indices + num_nnz_indices, _mm_loadu_si128(&LookupTableIndices[b3]) + base);
+      num_nnz_indices += c3;
+      base += increment;
     }
 
-#else
+#elif defined (USE_SSSE3)
+
+    const unsigned numChunks = (16 * kHalfDimensions) / 128;
+    vec8_t *out = (vec8_t *)&output[offset];
+    for (unsigned i = 0; i < numChunks / 2; i++) {
+      vec16_t s0 = ((vec16_t *)(*accumulation)[perspectives[p]])[i * 2];
+      vec16_t s1 = ((vec16_t *)(*accumulation)[perspectives[p]])[i * 2 + 1];
+      out[i] = vec_packs(s0, s1);
+
+      unsigned nnz = _mm_movemask_epi8(_mm_cmpgt_epi8(out[i], _mm_setzero_si128()));
+      unsigned b1 = (nnz >> 8) & 0xFF;
+      unsigned b0 = (nnz) & 0xFF;
+      unsigned c0 = LookupTableCounts[b0];
+      unsigned c1 = LookupTableCounts[b1];
+      _mm_storeu_si128(nnz_indices + num_nnz_indices, _mm_loadu_si128(&LookupTableIndices[b0]) + base);
+      num_nnz_indices += c0;
+      base += increment;
+      _mm_storeu_si128(nnz_indices + num_nnz_indices, _mm_loadu_si128(&LookupTableIndices[b1]) + base);
+      num_nnz_indices += c1;
+      base += increment;
+    }
+
+#elif defined (USE_SSE2)
+
+    const unsigned numChunks = (16 * kHalfDimensions) / 128;
     vec16_t *out = (vec16_t *)&output[offset];
     for (unsigned i = 0; i < numChunks; i++) {
       vec16_t sum = ((vec16_t *)(*accumulation)[perspectives[p]])[i];
       out[i] = vec_clip_16(sum);
+#error "error because no _mm_movemask_epi16 and I don't care"
+      unsigned nnz = _mm_movemask_epi16(_mm_cmpgt_epi16(out[i], _mm_setzero_si128()));
+      unsigned b0 = (nnz) & 0xFF;
+      unsigned c0 = LookupTableCounts[b0];
+      _mm_storeu_si128(nnz_indices + num_nnz_indices, _mm_loadu_si128(&LookupTableIndices[b0]) + base);
+      num_nnz_indices += c0;
+      base += increment;
     }
-
-#endif
 
 #else
-    for (unsigned i = 0; i < kHalfDimensions; i++) {
-      int16_t sum = (*accumulation)[perspectives[p]][i];
-      output[offset + i] = clamp(sum, 0, 127);
-    }
-
+#error "Not supported"
 #endif
 
   }
 
-  return false;
+
+  return num_nnz_indices;
 }
 
 #ifndef USE_NEON
@@ -652,6 +679,11 @@ static const char *read_hidden_weights_sparse(weight_t_sparse *w, unsigned outDi
       w[wt_idx_sparse(r, c, dims)] = *d++;
   }
 
+  for (unsigned r = 0; r < outDims; r++)
+  {
+     w[wt_idx_sparse(r, dims, dims)] = 0;
+  }
+
   return d;
 }
 #endif
@@ -660,17 +692,17 @@ static bool init_weights(const void *evalData, unsigned size)
 {
   if (!ft_biases) {
     if (settings.largePages)
-      ft_biases = allocate_memory(2 * kHalfDimensions * (FtInDims + 1) + (4 * kPsqtBuckets * FtInDims), true,
+      ft_biases = allocate_memory(2 * kHalfDimensions * (FtInDims + 2) + (4 * kPsqtBuckets * FtInDims), true,
           &ft_alloc);
     if (!ft_biases)
-      ft_biases = allocate_memory(2 * kHalfDimensions * (FtInDims + 1) + (4 * kPsqtBuckets * FtInDims), false,
+      ft_biases = allocate_memory(2 * kHalfDimensions * (FtInDims + 2) + (4 * kPsqtBuckets * FtInDims), false,
           &ft_alloc);
     if (!ft_biases) {
       fprintf(stdout, "Could not allocate enough memory.\n");
       exit(EXIT_FAILURE);
     }
     ft_weights = ft_biases + kHalfDimensions;
-    ft_weights_psqt = (int32_t*)(ft_weights + kHalfDimensions * FtInDims);
+    ft_weights_psqt = (int32_t*)(ft_weights + kHalfDimensions * (FtInDims + 1));
   }
 
   const char *d = (const char *)evalData;
@@ -688,23 +720,25 @@ static bool init_weights(const void *evalData, unsigned size)
   // Read network
   for (unsigned k = 0; k < kLayerStacks; ++k) {
     d += 4;
-    for (unsigned i = 0; i < 16; i++, d += 4)
+    for (unsigned i = 0; i < 64; i++, d += 4)
       hidden1_biases[k][i] = readu_le_u32(d);
 #if defined (NNUE_SPARSE)
-    d = read_hidden_weights_sparse(hidden1_weights[k], 16, 1024, d);
+    d = read_hidden_weights_sparse(hidden1_weights[k], 64, 2048, d);
 #else
-    d = read_hidden_weights_dense(hidden1_weights[k], 16, 1024, d);
+    d = read_hidden_weights_dense(hidden1_weights[k], 64, 2048, d);
 #endif
 
-    for (unsigned i = 0; i < 32; i++, d += 4)
+    for (unsigned i = 0; i < 64; i++, d += 4)
       hidden2_biases[k][i] = readu_le_u32(d);
-    d = read_hidden_weights_dense(hidden2_weights[k], 32, 32, d);
+    d = read_hidden_weights_dense(hidden2_weights[k], 64, 64, d);
 
     for (unsigned i = 0; i < 1; i++, d += 4)
       output_biases[k][i] = readu_le_u32(d);
 
     d = read_output_weights_dense(output_weights[k], d);
   }
+
+  init_lookup();
 
   return d == ((const char*)evalData) + size;
 }
