@@ -53,7 +53,7 @@ static const uint64_t ttHitAverageWindow     = 4096;
 static const uint64_t ttHitAverageResolution = 1024;
 
 INLINE int futility_margin(Depth d, bool improving) {
-  return 231 * (d - improving);
+  return 214 * (d - improving);
 }
 
 // Reductions lookup tables, initialized at startup
@@ -62,7 +62,7 @@ static int Reductions[MAX_MOVES]; // [depth or moveNumber]
 INLINE Depth reduction(int i, Depth d, int mn)
 {
   int r = Reductions[d] * Reductions[mn];
-  return (r + 503) / 1024 + (!i && r > 915);
+  return (r + 534) / 1024 + (!i && r > 904);
 }
 
 INLINE int futility_move_count(bool improving, Depth depth)
@@ -75,7 +75,7 @@ INLINE int futility_move_count(bool improving, Depth depth)
 static Value stat_bonus(Depth depth)
 {
   int d = depth;
-  return d > 14 ? 66 : 6 * d * d + 231 * d - 206;
+  return d > 14 ? 73 : 6 * d * d + 229 * d - 215;
 }
 
 // Add a small random component to draw evaluations to keep search dynamic
@@ -913,10 +913,10 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   // Step 8. Null move search with verification search (is omitted in PV nodes)
   if (   !PvNode
       && (ss-1)->currentMove != MOVE_NULL
-      && (ss-1)->statScore < 24185
+      && (ss-1)->statScore < 23767
       && eval >= beta
       && eval >= ss->staticEval
-      && ss->staticEval >= beta - 22 * depth - 34 * improving + 162 * ss->ttPv + 159
+      && ss->staticEval >= beta - 20 * depth - 22 * improving + 168 * ss->ttPv + 159
       && !excludedMove
       && non_pawn_material_c(stm())
       && (ss->ply >= pos->nmpMinPly || stm() != pos->nmpColor))
@@ -924,7 +924,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
     assert(eval - beta >= 0);
 
     // Null move dynamic reduction based on depth and value
-    Depth R = (1062 + 68 * depth) / 256 + min((eval - beta) / 190, 3);
+    Depth R = (1090 + 81 * depth) / 256 + min((eval - beta) / 205, 3);
 
     ss->currentMove = MOVE_NULL;
     ss->history = &(*pos->counterMoveHistory)[0][0][0][0];
@@ -1021,7 +1021,7 @@ moves_loop: // When in check search starts from here
   ttCapture = ttMove && is_capture_or_promotion(pos, ttMove);
 
   // Step 11. A small Probcut idea, when we are in check
-  probCutBeta = beta + 400;
+  probCutBeta = beta + 409;
   if (   inCheck
       && !PvNode
       && depth >= 4
@@ -1177,7 +1177,7 @@ moves_loop: // When in check search starts from here
       if (value < singularBeta) {
         extension = 1;
         singularQuietLMR = !ttCapture;
-        if (!PvNode && value < singularBeta - 140)
+        if (!PvNode && value < singularBeta - 93)
           extension = 2;
       }
 
@@ -1280,10 +1280,10 @@ moves_loop: // When in check search starts from here
                        + (*fmh )[movedPiece][to_sq(move)]
                        + (*fmh2)[movedPiece][to_sq(move)]
                        + (*pos->mainHistory)[!stm()][from_to(move)]
-                       - 4791;
+                       - 4923;
 
         if (!inCheck)
-          r -= ss->statScore / 14790;
+          r -= ss->statScore / 14721;
       }
 
       Depth d = clamp(newDepth - r, 1, newDepth + (r < -1 && moveCount <= 5));
