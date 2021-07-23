@@ -678,12 +678,12 @@ static bool init_weights(const void *evalData, unsigned size)
   d += 4 + 4 + 4 + s + 4;
 
   // Read transformer
-  for (unsigned i = 0; i < kHalfDimensions; i++, d += 2)
-    ft_biases[i] = readu_le_u16(d);
-  for (unsigned i = 0; i < kHalfDimensions * FtInDims; i++, d += 2)
-    ft_weights[i] = readu_le_u16(d);
-  for (unsigned i = 0; i < kPsqtBuckets * FtInDims; i++, d += 4)
-    ft_weights_psqt[i] = readu_le_u32(d);
+  memcpy(ft_biases, d, kHalfDimensions * 2);
+  d += kHalfDimensions * 2;
+  memcpy(ft_weights, d, kHalfDimensions * FtInDims * 2);
+  d += kHalfDimensions * FtInDims * 2;
+  memcpy(ft_weights_psqt, d, kPsqtBuckets * FtInDims * 4);
+  d += kPsqtBuckets * FtInDims * 4;
 
   // Read network
   for (unsigned k = 0; k < kLayerStacks; ++k) {
