@@ -1214,6 +1214,12 @@ moves_loop: // When in check search starts from here
       ss->mpKillers[0] = k1; ss->mpKillers[1] = k2;
 
     }
+    else if (   givesCheck
+             && depth > 6
+             && abs(ss->staticEval) > 100)
+    {
+      extension = 1;
+    }
 
     // Add extension to new depth
     newDepth += extension;
