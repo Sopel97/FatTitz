@@ -83,7 +83,7 @@ enum {
   LazyThreshold1 =  1565,
   LazyThreshold2 =  1102,
   SpaceThreshold = 11551,
-  NNUEThreshold1 =   682,
+  NNUEThreshold1 =   800,
   NNUEThreshold2 =   176
 };
 

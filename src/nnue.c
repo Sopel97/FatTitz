@@ -577,9 +577,6 @@ INLINE bool transform(const Position *pos, clipped_t *output, mask_t *outMask, i
     - (*accumulation_psqt)[perspectives[1]][psqtBucket]
   ) / 2;
 
-  if (abs(*psqt_val) > 1400 * FV_SCALE)
-    return true;
-
   for (unsigned p = 0; p < 2; p++) {
     const unsigned offset = kHalfDimensions * p;
 

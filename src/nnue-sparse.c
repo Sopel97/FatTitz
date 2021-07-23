@@ -328,45 +328,36 @@ Value nnue_evaluate(const Position *pos, bool adjusted)
   int32_t bucket = (popcount(pieces()) - 1) / 4;
   int32_t psqt_val;
 
-  if (transform(pos, B(input), hidden1_mask, bucket, &psqt_val))
-  {
+  transform(pos, B(input), hidden1_mask, bucket, &psqt_val);
+  hidden_layer(B(input), B(hidden1_out), 1024, hidden1_biases[bucket],
+      hidden1_weights[bucket], hidden1_mask);
+  for (unsigned i = 0; i < 16; ++i)
+    B(hidden1_clipped)[i] = B(hidden1_out)[i];
+  for (unsigned i = 16; i < 32; ++i)
+    B(hidden1_clipped)[i] = 0;
+
+  affine_propagate(B(hidden1_clipped), B(hidden2_values), 32, 32,
+      hidden2_biases[bucket], hidden2_weights[bucket]);
+  clip_propagate(B(hidden2_values), B(hidden2_clipped), 32);
+
+  out_value = output_layer(B(hidden2_clipped), output_biases[bucket], output_weights[bucket]);
+
 #if defined(USE_MMX)
   _mm_empty();
 #endif
-    return psqt_val / FV_SCALE;
-  }
-  else
-  {
-    hidden_layer(B(input), B(hidden1_out), 1024, hidden1_biases[bucket],
-        hidden1_weights[bucket], hidden1_mask);
-    for (unsigned i = 0; i < 16; ++i)
-      B(hidden1_clipped)[i] = B(hidden1_out)[i];
-    for (unsigned i = 16; i < 32; ++i)
-      B(hidden1_clipped)[i] = 0;
 
-    affine_propagate(B(hidden1_clipped), B(hidden2_values), 32, 32,
-        hidden2_biases[bucket], hidden2_weights[bucket]);
-    clip_propagate(B(hidden2_values), B(hidden2_clipped), 32);
+  int materialist = psqt_val;
+  int positional = out_value;
 
-    out_value = output_layer(B(hidden2_clipped), output_biases[bucket], output_weights[bucket]);
+  int delta_npm = abs(non_pawn_material_c(WHITE) - non_pawn_material_c(BLACK));
+  int entertainment = (adjusted && delta_npm <= BishopValueMg - KnightValueMg ? 7 : 0);
 
-  #if defined(USE_MMX)
-    _mm_empty();
-  #endif
+  int A = 128 - entertainment;
+  int B = 128 + entertainment;
 
-    int materialist = psqt_val;
-    int positional = out_value;
+  int sum = (A * materialist + B * positional) / 128;
 
-    int delta_npm = abs(non_pawn_material_c(WHITE) - non_pawn_material_c(BLACK));
-    int entertainment = (adjusted && delta_npm <= BishopValueMg - KnightValueMg ? 7 : 0);
-
-    int A = 128 - entertainment;
-    int B = 128 + entertainment;
-
-    int sum = (A * materialist + B * positional) / 128;
-
-    return sum / FV_SCALE;
-  }
+  return sum / FV_SCALE;
 }
 
 INLINE unsigned wt_idx_sparse(unsigned r, unsigned c, unsigned dims)
