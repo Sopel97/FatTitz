@@ -879,7 +879,7 @@ Value evaluate(const Position *pos)
 
 #ifdef NNUE
 
-  const int mat = 28 * non_pawn_material() / 1024 + 28 * popcount(pieces_p(PAWN));
+  const int mat = 32 * non_pawn_material() / 1024 + 32 * popcount(pieces_p(PAWN));
   if (useNNUE == EVAL_HYBRID) {
     Value psq = abs(eg_value(psq_score()));
     int r50 = 16 + rule50_count();
