@@ -1267,14 +1267,14 @@ moves_loop: // When in check search starts from here
       if (singularQuietLMR)
         r--;
 
+      // Increase reduction for cut nodes (~3 Elo)
+      if (cutNode)
+          r += 1 + !captureOrPromotion;
+
       if (!captureOrPromotion) {
         // Increase reduction if ttMove is a capture
         if (ttCapture)
           r++;
-
-        // Increase reduction for cut nodes
-        if (cutNode)
-          r += 2;
 
         ss->statScore =  (*cmh )[movedPiece][to_sq(move)]
                        + (*fmh )[movedPiece][to_sq(move)]
