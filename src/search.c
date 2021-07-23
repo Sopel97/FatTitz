@@ -1379,7 +1379,6 @@ moves_loop: // When in check search starts from here
           alpha = value;
         else {
           assert(value >= beta); // Fail high
-          ss->statScore = 0;
           break;
         }
       }
