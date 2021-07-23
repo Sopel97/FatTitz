@@ -687,7 +687,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   Move ttMove, move, excludedMove, bestMove;
   Depth extension, newDepth;
   Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
-  bool formerPv, givesCheck, improving, didLMR;
+  bool givesCheck, improving, didLMR;
   bool captureOrPromotion, inCheck, doFullDepthSearch, moveCountPruning;
   bool ttCapture, singularQuietLMR;
   Piece movedPiece;
@@ -768,7 +768,6 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
           : ss->ttHit    ? tte_move(tte) : 0;
   if (!excludedMove)
     ss->ttPv = PvNode || (ss->ttHit && tte_is_pv(tte));
-  formerPv = ss->ttPv && !PvNode;
 
   if (   ss->ttPv
       && depth > 12
@@ -1166,8 +1165,8 @@ moves_loop: // When in check search starts from here
         && (tte_bound(tte) & BOUND_LOWER)
         &&  tte_depth(tte) >= depth - 3)
     {
-      Value singularBeta = ttValue - ((formerPv + 4) * depth) / 2;
-      Depth singularDepth = (depth - 1 + 3 * formerPv) / 2;
+      Value singularBeta = ttValue - 2 * depth;
+      Depth singularDepth = (depth - 1) / 2;
       ss->excludedMove = move;
       Move cm = ss->countermove;
       Move k1 = ss->mpKillers[0], k2 = ss->mpKillers[1];
@@ -1246,7 +1245,7 @@ moves_loop: // When in check search starts from here
         &&  moveCount > 1 + 2 * rootNode
         && (   !captureOrPromotion
             || (cutNode && (ss-1)->moveCount > 1)
-            || (!PvNode && !formerPv))
+            || !ss->ttPv)
         && (!PvNode || ss->ply > 1 || pos->threadIdx % 4 != 3))
     {
       Depth r = reduction(improving, depth, moveCount);
