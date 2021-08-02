@@ -641,7 +641,6 @@ INLINE int transform(const Position *pos, clipped_t *output, uint16_t *nnz_indic
 
   }
 
-
   return num_nnz_indices;
 }
 
@@ -673,15 +672,12 @@ static const char *read_hidden_weights_dense(weight_t *w, unsigned outDims, unsi
 static const char *read_hidden_weights_sparse(weight_t_sparse *w, unsigned outDims, unsigned dims,
     const char *d)
 {
-  for (unsigned r = 0; r < outDims; r++)
+  for (unsigned i = 0; i < outDims; i++)
   {
-    for (unsigned c = 0; c < dims; c++)
-      w[wt_idx_sparse(r, c, dims)] = *d++;
-  }
+    for (unsigned j = 0; j < dims; j++)
+      w[j*outDims + i] = *d++;
 
-  for (unsigned r = 0; r < outDims; r++)
-  {
-     w[wt_idx_sparse(r, dims, dims)] = 0;
+     w[dims * outDims + i] = 0;
   }
 
   return d;

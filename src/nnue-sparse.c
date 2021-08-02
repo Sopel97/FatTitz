@@ -34,7 +34,7 @@ static alignas(64) int32_t hidden1_biases[8][64];
 static alignas(64) int32_t hidden2_biases[8][64];
 static int32_t output_biases[8][1];
 
-INLINE void hidden_layer(const clipped_t *input, void *output, unsigned dims,
+INLINE void hidden_layer(const clipped_t *input, int32_t *output, unsigned dims,
     const int32_t *biases, const weight_t_sparse *weights, uint16_t *nnz_indices, int num_nnz_indices)
 {
 
@@ -242,14 +242,6 @@ Value nnue_evaluate(const Position *pos, bool adjusted)
   int sum = (A * materialist + B * positional) / 128;
 
   return sum / FV_SCALE;
-}
-
-INLINE unsigned wt_idx_sparse(unsigned r, unsigned c, unsigned dims)
-{
-  (void)dims;
-
-  return c * 64 + r;
-
 }
 
 #endif
