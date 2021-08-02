@@ -758,6 +758,19 @@ bool gives_check_special(const Position *pos, Stack *st, Move m)
 }
 
 
+static void append_changed_indices(const Position *pos, const Color c,
+    const DirtyPiece * restrict dp, IndexList * restrict removed, IndexList * restrict added)
+{
+  Square ksq = square_of(c, KING);
+  for (int i = 0; i < dp->dirtyNum; i++) {
+    Piece pc = dp->pc[i];
+    if (dp->from[i] != SQ_NONE)
+      removed->values[removed->size++] = make_index(c, dp->from[i], pc, ksq);
+    if (dp->to[i] != SQ_NONE)
+      added->values[added->size++] = make_index(c, dp->to[i], pc, ksq);
+  }
+}
+
 // do_move() makes a move. The move is assumed to be legal.
 
 void do_move(Position *pos, Move m, int givesCheck)
@@ -782,6 +795,10 @@ void do_move(Position *pos, Move m, int givesCheck)
   st->accumulator.state[BLACK] = ACC_EMPTY;
   DirtyPiece *dp = &(st->dirtyPiece);
   dp->dirtyNum = 1;
+  st->added[0].size = 0;
+  st->added[1].size = 0;
+  st->removed[0].size = 0;
+  st->removed[1].size = 0;
 #endif
 
   Color us = stm();
@@ -992,6 +1009,13 @@ void do_move(Position *pos, Move m, int givesCheck)
 
   set_check_info(pos);
 
+#ifdef NNUE
+  if (dp->pc[0] != make_piece(WHITE, KING))
+    append_changed_indices(pos, WHITE, dp, &st->removed[WHITE], &st->added[WHITE]);
+  if (dp->pc[0] != make_piece(BLACK, KING))
+    append_changed_indices(pos, BLACK, dp, &st->removed[BLACK], &st->added[BLACK]);
+#endif
+
   assert(pos_is_ok(pos, &failed_step));
 }
 
@@ -1081,6 +1105,10 @@ void do_null_move(Position *pos)
   st->accumulator.state[BLACK] = ACC_EMPTY;
   st->dirtyPiece.dirtyNum = 0;
   st->dirtyPiece.pc[0] = 0;
+  st->added[0].size = 0;
+  st->added[1].size = 0;
+  st->removed[0].size = 0;
+  st->removed[1].size = 0;
 #endif
 
   if (unlikely(st->epSquare)) {

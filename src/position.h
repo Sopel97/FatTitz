@@ -54,6 +54,55 @@ void zob_init(void);
 // Stack struct stores information needed to restore a Position struct to
 // its previous state when we retract a move.
 
+enum {
+  PS_W_PAWN   =  0,
+  PS_B_PAWN   =  1 * 64,
+  PS_W_KNIGHT =  2 * 64,
+  PS_B_KNIGHT =  3 * 64,
+  PS_W_BISHOP =  4 * 64,
+  PS_B_BISHOP =  5 * 64,
+  PS_W_ROOK   =  6 * 64,
+  PS_B_ROOK   =  7 * 64,
+  PS_W_QUEEN  =  8 * 64,
+  PS_B_QUEEN  =  9 * 64,
+  PS_KING     = 10 * 64,
+  PS_END      = 11 * 64
+};
+
+static const uint32_t PieceToIndex[2][16] = {
+  { 0, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, 0,
+    0, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, 0 },
+  { 0, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, 0,
+    0, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, 0 }
+};
+
+typedef struct {
+  unsigned size;
+  unsigned values[32];
+} IndexList;
+
+INLINE Square orient(Color c, Square s, Square ksq)
+{
+  return s ^ (c * SQ_A8) ^ ((file_of(ksq) < FILE_E) * SQ_H1);
+}
+
+static const int KingBuckets[64] = {
+  -1, -1, -1, -1, 31, 30, 29, 28,
+  -1, -1, -1, -1, 27, 26, 25, 24,
+  -1, -1, -1, -1, 23, 22, 21, 20,
+  -1, -1, -1, -1, 19, 18, 17, 16,
+  -1, -1, -1, -1, 15, 14, 13, 12,
+  -1, -1, -1, -1, 11, 10, 9, 8,
+  -1, -1, -1, -1, 7, 6, 5, 4,
+  -1, -1, -1, -1, 3, 2, 1, 0
+};
+
+INLINE unsigned make_index(Color c, Square s, Piece pc, Square ksq)
+{
+  int o_ksq = orient(c, ksq, ksq);
+  return orient(c, s, ksq) + PieceToIndex[c][pc] + PS_END * KingBuckets[o_ksq];
+}
+
 struct Stack {
   // Copied when making a move
 #ifndef NNUE_PURE
@@ -124,6 +173,8 @@ struct Stack {
   // NNUE data
   Accumulator accumulator;
   DirtyPiece dirtyPiece;
+  IndexList added[2];
+  IndexList removed[2];
 #endif
 };
 

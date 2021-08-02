@@ -51,28 +51,6 @@ INCBIN(Network, DefaultEvalFile);
 #define ALIGNMENT_HACK
 #endif
 
-enum {
-  PS_W_PAWN   =  0,
-  PS_B_PAWN   =  1 * 64,
-  PS_W_KNIGHT =  2 * 64,
-  PS_B_KNIGHT =  3 * 64,
-  PS_W_BISHOP =  4 * 64,
-  PS_B_BISHOP =  5 * 64,
-  PS_W_ROOK   =  6 * 64,
-  PS_B_ROOK   =  7 * 64,
-  PS_W_QUEEN  =  8 * 64,
-  PS_B_QUEEN  =  9 * 64,
-  PS_KING     = 10 * 64,
-  PS_END      = 11 * 64
-};
-
-uint32_t PieceToIndex[2][16] = {
-  { 0, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, 0,
-    0, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, 0 },
-  { 0, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_KING, 0,
-    0, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_KING, 0 }
-};
-
 // Version of the evaluation file
 static const uint32_t NnueVersion = 0x7AF32F20u;
 
@@ -284,33 +262,6 @@ void init_lookup()
   }
 }
 
-typedef struct {
-  unsigned size;
-  unsigned values[32];
-} IndexList;
-
-INLINE Square orient(Color c, Square s, Square ksq)
-{
-  return s ^ (c * SQ_A8) ^ ((file_of(ksq) < FILE_E) * SQ_H1);
-}
-
-static const int KingBuckets[64] = {
-  -1, -1, -1, -1, 31, 30, 29, 28,
-  -1, -1, -1, -1, 27, 26, 25, 24,
-  -1, -1, -1, -1, 23, 22, 21, 20,
-  -1, -1, -1, -1, 19, 18, 17, 16,
-  -1, -1, -1, -1, 15, 14, 13, 12,
-  -1, -1, -1, -1, 11, 10, 9, 8,
-  -1, -1, -1, -1, 7, 6, 5, 4,
-  -1, -1, -1, -1, 3, 2, 1, 0
-};
-
-INLINE unsigned make_index(Color c, Square s, Piece pc, Square ksq)
-{
-  int o_ksq = orient(c, ksq, ksq);
-  return orient(c, s, ksq) + PieceToIndex[c][pc] + PS_END * KingBuckets[o_ksq];
-}
-
 static void append_active_indices(const Position *pos, const Color c,
     IndexList *active)
 {
@@ -319,19 +270,6 @@ static void append_active_indices(const Position *pos, const Color c,
   while (bb) {
     Square s = pop_lsb(&bb);
     active->values[active->size++] = make_index(c, s, piece_on(s), ksq);
-  }
-}
-
-static void append_changed_indices(const Position *pos, const Color c,
-    const DirtyPiece *dp, IndexList *removed, IndexList *added)
-{
-  Square ksq = square_of(c, KING);
-  for (int i = 0; i < dp->dirtyNum; i++) {
-    Piece pc = dp->pc[i];
-    if (dp->from[i] != SQ_NONE)
-      removed->values[removed->size++] = make_index(c, dp->from[i], pc, ksq);
-    if (dp->to[i] != SQ_NONE)
-      added->values[added->size++] = make_index(c, dp->to[i], pc, ksq);
   }
 }
 
@@ -368,7 +306,7 @@ INLINE void update_accumulator(const Position *pos, const Color c)
   while (st->accumulator.state[c] == ACC_EMPTY) {
     DirtyPiece *dp = &st->dirtyPiece;
     if (   dp->pc[0] == make_piece(c, KING)
-        || (gain -= dp->dirtyNum + 1) < 0)
+        || (gain -= st->added[c].size + st->removed[c].size + 1) < 0)
       break;
     st--;
   }
@@ -377,25 +315,20 @@ INLINE void update_accumulator(const Position *pos, const Color c)
     if (st == pos->st)
       return;
 
-    IndexList added[2], removed[2];
-    added[0].size = added[1].size = removed[0].size = removed[1].size = 0;
-    append_changed_indices(pos, c, &(st+1)->dirtyPiece, &removed[0], &added[0]);
-    for (Stack *st2 = st + 2; st2 <= pos->st; st2++)
-      append_changed_indices(pos, c, &st2->dirtyPiece, &removed[1], &added[1]);
+    for (Stack *st2 = st + 1; st2 <= pos->st; st2++)
+      st2->accumulator.state[c] = ACC_COMPUTED;
 
-    (st+1)->accumulator.state[c] = ACC_COMPUTED;
-    pos->st->accumulator.state[c] = ACC_COMPUTED;
-
-    Stack *stack[3] = { st + 1, st + 1 == pos->st ? NULL : pos->st, NULL };
-#ifdef VECTOR
     for (unsigned i = 0; i < kHalfDimensions / TILE_HEIGHT; i++) {
       vec16_t *accTile = (vec16_t *)&st->accumulator.accumulation[c][i * TILE_HEIGHT];
       for (unsigned j = 0; j < NUM_REGS; j++)
         acc[j] = accTile[j];
-      for (unsigned l = 0; stack[l]; l++) {
+      for (Stack* st2 = st; st2 != pos->st; st2++) {
         // Difference calculation for the deactivated features
-        for (unsigned k = 0; k < removed[l].size; k++) {
-          unsigned index = removed[l].values[k];
+        IndexList* restrict removed = &(st2+1)->removed[c];
+        IndexList* restrict added = &(st2+1)->added[c];
+
+        for (unsigned k = 0; k < removed->size; k++) {
+          unsigned index = removed->values[k];
           const unsigned offset = kHalfDimensions * index + i * TILE_HEIGHT;
           vec16_t *column = (vec16_t *)&ft_weights[offset];
           for (unsigned j = 0; j < NUM_REGS; j++)
@@ -403,15 +336,15 @@ INLINE void update_accumulator(const Position *pos, const Color c)
         }
 
         // Difference calculation for the activated features
-        for (unsigned k = 0; k < added[l].size; k++) {
-          unsigned index = added[l].values[k];
+        for (unsigned k = 0; k < added->size; k++) {
+          unsigned index = added->values[k];
           const unsigned offset = kHalfDimensions * index + i * TILE_HEIGHT;
           vec16_t *column = (vec16_t *)&ft_weights[offset];
           for (unsigned j = 0; j < NUM_REGS; j++)
             acc[j] = vec_add_16(acc[j], column[j]);
         }
 
-        accTile = (vec16_t *)&stack[l]->accumulator.accumulation[c][i * TILE_HEIGHT];
+        accTile = (vec16_t *)&(st2+1)->accumulator.accumulation[c][i * TILE_HEIGHT];
         for (unsigned j = 0; j < NUM_REGS; j++)
           accTile[j] = acc[j];
       }
@@ -421,10 +354,13 @@ INLINE void update_accumulator(const Position *pos, const Color c)
       vec32_psqt_t *accTile = (vec32_psqt_t *)&st->accumulator.accumulation_psqt[c][i * PSQT_TILE_HEIGHT];
       for (unsigned j = 0; j < NUM_PSQT_REGS; j++)
         acc_psqt[j] = accTile[j];
-      for (unsigned l = 0; stack[l]; l++) {
+      for (Stack* st2 = st; st2 != pos->st; st2++) {
         // Difference calculation for the deactivated features
-        for (unsigned k = 0; k < removed[l].size; k++) {
-          unsigned index = removed[l].values[k];
+        IndexList* restrict removed = &(st2+1)->removed[c];
+        IndexList* restrict added = &(st2+1)->added[c];
+
+        for (unsigned k = 0; k < removed->size; k++) {
+          unsigned index = removed->values[k];
           const unsigned offset = kPsqtBuckets * index + i * PSQT_TILE_HEIGHT;
           vec32_psqt_t *column = (vec32_psqt_t *)&ft_weights_psqt[offset];
           for (unsigned j = 0; j < NUM_PSQT_REGS; j++)
@@ -432,61 +368,26 @@ INLINE void update_accumulator(const Position *pos, const Color c)
         }
 
         // Difference calculation for the activated features
-        for (unsigned k = 0; k < added[l].size; k++) {
-          unsigned index = added[l].values[k];
+        for (unsigned k = 0; k < added->size; k++) {
+          unsigned index = added->values[k];
           const unsigned offset = kPsqtBuckets * index + i * PSQT_TILE_HEIGHT;
           vec32_psqt_t *column = (vec32_psqt_t *)&ft_weights_psqt[offset];
           for (unsigned j = 0; j < NUM_PSQT_REGS; j++)
             acc_psqt[j] = vec_add_psqt_32(acc_psqt[j], column[j]);
         }
 
-        accTile = (vec32_psqt_t *)&stack[l]->accumulator.accumulation_psqt[c][i * PSQT_TILE_HEIGHT];
+        accTile = (vec32_psqt_t *)&(st2+1)->accumulator.accumulation_psqt[c][i * PSQT_TILE_HEIGHT];
         for (unsigned j = 0; j < NUM_PSQT_REGS; j++)
           accTile[j] = acc_psqt[j];
       }
     }
-#else
-    for (unsigned l = 0; stack[l]; l++) {
-      memcpy(&stack[l]->accumulator.accumulation[c],
-          &st->accumulator.accumulation[c], kHalfDimensions * sizeof(int16_t));
-      memcpy(&stack[l]->accumulator.accumulation_psqt[c],
-          &st->accumulator.accumulation_psqt[c], kPsqtBuckets * sizeof(int32_t));
-      st = stack[l];
 
-      // Difference calculation for the deactivated features
-      for (unsigned k = 0; k < removed[l].size; k++) {
-        unsigned index = removed[l].values[k];
-        const unsigned offset = kHalfDimensions * index;
-        const unsigned offset_psqt = kPsqtBuckets * index;
-
-        for (unsigned j = 0; j < kHalfDimensions; j++)
-          st->accumulator.accumulation[c][j] -= ft_weights[offset + j];
-
-        for (unsigned j = 0; j < kPsqtBuckets; j++)
-          st->accumulator.accumulation_psqt[c][j] -= ft_weights_psqt[offset_psqt + j];
-      }
-
-      // Difference calculation for the activated features
-      for (unsigned k = 0; k < added[l].size; k++) {
-        unsigned index = added[l].values[k];
-        const unsigned offset = kHalfDimensions * index;
-        const unsigned offset_psqt = kPsqtBuckets * index;
-
-        for (unsigned j = 0; j < kHalfDimensions; j++)
-          st->accumulator.accumulation[c][j] += ft_weights[offset + j];
-
-        for (unsigned j = 0; j < kPsqtBuckets; j++)
-          st->accumulator.accumulation_psqt[c][j] += ft_weights_psqt[offset_psqt + j];
-      }
-    }
-#endif
   } else {
     Accumulator *accumulator = &pos->st->accumulator;
     accumulator->state[c] = ACC_COMPUTED;
     IndexList active;
     active.size = 0;
     append_active_indices(pos, c, &active);
-#ifdef VECTOR
     for (unsigned i = 0; i < kHalfDimensions / TILE_HEIGHT; i++) {
       vec16_t *ft_biases_tile = (vec16_t *)&ft_biases[i * TILE_HEIGHT];
       for (unsigned j = 0; j < NUM_REGS; j++)
@@ -521,24 +422,6 @@ INLINE void update_accumulator(const Position *pos, const Color c)
       for (unsigned j = 0; j < NUM_PSQT_REGS; j++)
         accTile[j] = acc_psqt[j];
     }
-#else
-    memcpy(accumulator->accumulation[c], ft_biases,
-        kHalfDimensions * sizeof(int16_t));
-    memset(accumulator->accumulation_psqt[c], 0,
-        kPsqtBuckets * sizeof(int32_t));
-
-    for (unsigned k = 0; k < active.size; k++) {
-      unsigned index = active.values[k];
-      unsigned offset = kHalfDimensions * index;
-      unsigned offset_psqt = kPsqtBuckets * index;
-
-      for (unsigned j = 0; j < kHalfDimensions; j++)
-        accumulator->accumulation[c][j] += ft_weights[offset + j];
-
-      for (unsigned j = 0; j < kPsqtBuckets; j++)
-        accumulator->accumulation_psqt[c][j] += ft_weights_psqt[offset_psqt + j];
-    }
-#endif
   }
 }
 
