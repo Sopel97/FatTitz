@@ -125,7 +125,7 @@ typedef uint32_t mask_t;
 #define vec_sub_16(a,b) _mm256_sub_epi16(a,b)
 #define vec_add_psqt_32(a,b) _mm256_add_epi32(a,b)
 #define vec_sub_psqt_32(a,b) _mm256_sub_epi32(a,b)
-#define vec_packs(a,b) _mm256_packs_epi16(a,b)
+#define vec_packs(a,b) _mm256_permute4x64_epi64(_mm256_packs_epi16(a,b), 0b11011000)
 #define vec_mask_pos(a) _mm256_movemask_epi8(_mm256_cmpgt_epi8(a,_mm256_setzero_si256()))
 #define vec_clip_8(a,b) _mm256_max_epi8(vec_packs(a,b),_mm256_setzero_si256())
 #define vec_zero_psqt() _mm256_setzero_si256()
