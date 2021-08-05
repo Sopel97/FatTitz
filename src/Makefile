@@ -393,10 +393,6 @@ endif
 
 endif
 
-ifeq ($(avx2),yes)
-	sparse=no
-endif
-
 ### ==========================================================================
 ### Section 3. Low-level configuration
 ### ==========================================================================
@@ -957,24 +953,21 @@ config-sanity: net
 	@test "$(debug)" = "yes" || test "$(debug)" = "no"
 	@test "$(sanitize)" = "undefined" || test "$(sanitize)" = "thread" || test "$(sanitize)" = "address" || test "$(sanitize)" = "no"
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
-	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
-	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || \
-	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
-	 test "$(arch)" = "e2k"
-	@test "$(bits)" = "32" || test "$(bits)" = "64"
-	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
-	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
-	@test "$(sse)" = "yes" || test "$(sse)" = "no"
-	@test "$(mmx)" = "yes" || test "$(mmx)" = "no"
-	@test "$(sse2)" = "yes" || test "$(sse2)" = "no"
-	@test "$(ssse3)" = "yes" || test "$(ssse3)" = "no"
+	@test "$(bits)" = "64"
+	@test "$(prefetch)" = "yes"
+	@test "$(popcnt)" = "yes"
+	@test "$(sparse)" = "yes"
+	@test "$(sse)" = "yes"
+	@test "$(mmx)" = "no"
+	@test "$(sse2)" = "yes"
+	@test "$(ssse3)" = "yes"
 	@test "$(sse41)" = "yes" || test "$(sse41)" = "no"
 	@test "$(avx)" = "yes" || test "$(avx)" = "no"
 	@test "$(avx2)" = "yes" || test "$(avx2)" = "no"
 	@test "$(pext)" = "yes" || test "$(pext)" = "no"
 	@test "$(avx512)" = "yes" || test "$(avx512)" = "no"
 	@test "$(vnni)" = "yes" || test "$(vnni)" = "no"
-	@test "$(neon)" = "yes" || test "$(neon)" = "no"
+	@test "$(neon)" = "no"
 	@test "$(native)" = "yes" || test "$(native)" = "no"
 	@test "$(embed)" = "yes" || test "$(embed)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang" \
