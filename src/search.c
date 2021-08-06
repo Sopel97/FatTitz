@@ -1121,8 +1121,8 @@ moves_loop: // When in check search starts from here
 
         // Countermoves based pruning
         if (   lmrDepth < 5
-            && (*cmh )[movedPiece][to_sq(move)] < CounterMovePruneThreshold
-            && (*fmh )[movedPiece][to_sq(move)] < CounterMovePruneThreshold)
+            && (*cmh )[movedPiece][to_sq(move)] < 23 - 23 * depth * depth
+            && (*fmh )[movedPiece][to_sq(move)] < 23 - 23 * depth * depth)
           continue;
 
         // Futility pruning: parent node
