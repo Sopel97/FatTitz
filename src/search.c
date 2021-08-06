@@ -1586,6 +1586,10 @@ INLINE Value qsearch_node(Position *pos, Stack *ss, Value alpha, Value beta,
   while ((move = next_move(pos, 0))) {
     assert(move_is_ok(move));
 
+    // Check for legality just before making the move
+    if (!is_legal(pos, move))
+      continue;
+
     givesCheck = gives_check(pos, ss, move);
 
     moveCount++;
@@ -1619,12 +1623,6 @@ INLINE Value qsearch_node(Position *pos, Stack *ss, Value alpha, Value beta,
 
     // Speculative prefetch as early as possible
     prefetch(tt_first_entry(key_after(pos, move)));
-
-    // Check for legality just before making the move
-    if (!is_legal(pos, move)) {
-      moveCount--;
-      continue;
-    }
 
     ss->currentMove = move;
     bool captureOrPromotion = is_capture_or_promotion(pos, move);
