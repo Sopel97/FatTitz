@@ -23,6 +23,7 @@
 #include "movegen.h"
 #include "position.h"
 #include "types.h"
+#include "uci.h"
 
 enum { CAPTURES, QUIETS, QUIET_CHECKS, EVASIONS, NON_EVASIONS, LEGAL };
 
@@ -180,6 +181,8 @@ INLINE ExtMove *generate_all(const Position *pos, ExtMove *list, const Color Us,
   const Square ksq = square_of(Us, KING);
   Bitboard target;
 
+  bool onlyEp = option_value(OPT_ANARCHY) && ep_square() != 0;
+
   if (Type == EVASIONS && more_than_one(checkers()))
     goto kingMoves; // Double check, only a king move can save the day
 
@@ -188,13 +191,16 @@ INLINE ExtMove *generate_all(const Position *pos, ExtMove *list, const Color Us,
           : Type == CAPTURES     ? pieces_c(!Us) : ~pieces();
 
   list = generate_pawn_moves(pos, list, target, Us, Type);
-  list = generate_moves(pos, list, target, Us, KNIGHT, Checks);
-  list = generate_moves(pos, list, target, Us, BISHOP, Checks);
-  list = generate_moves(pos, list, target, Us,   ROOK, Checks);
-  list = generate_moves(pos, list, target, Us,  QUEEN, Checks);
+  if (!onlyEp)
+  {
+    list = generate_moves(pos, list, target, Us, KNIGHT, Checks);
+    list = generate_moves(pos, list, target, Us, BISHOP, Checks);
+    list = generate_moves(pos, list, target, Us,   ROOK, Checks);
+    list = generate_moves(pos, list, target, Us,  QUEEN, Checks);
+  }
 
 kingMoves:
-  if (!Checks || blockers_for_king(pos, !Us) & sq_bb(ksq)) {
+  if ((!Checks || blockers_for_king(pos, !Us) & sq_bb(ksq)) && !onlyEp) {
     Bitboard b = attacks_from(KING, ksq) & (Type == EVASIONS ? ~pieces_c(Us) : target);
     if (Checks)
       b &= ~PseudoAttacks[QUEEN][square_of(!Us, KING)];
@@ -276,14 +282,17 @@ NOINLINE ExtMove *generate_legal(const Position *pos, ExtMove *list)
   Bitboard pinned = blockers_for_king(pos, us) & pieces_c(us);
   Square ksq = square_of(us, KING);
   ExtMove *cur = list;
+  bool onlyEp = option_value(OPT_ANARCHY) && ep_square() != 0;
 
   list = checkers() ? generate_evasions(pos, list)
                     : generate_non_evasions(pos, list);
   while (cur != list)
-    if (  (  (pinned && pinned & sq_bb(from_sq(cur->move)))
-           || from_sq(cur->move) == ksq
-           || type_of_m(cur->move) == ENPASSANT)
-        && !is_legal(pos, cur->move))
+    if (  (  (  (pinned && pinned & sq_bb(from_sq(cur->move)))
+             || from_sq(cur->move) == ksq
+             || type_of_m(cur->move) == ENPASSANT)
+          && !is_legal(pos, cur->move))
+        || (onlyEp && type_of_m(cur->move) != ENPASSANT)
+      )
       cur->move = (--list)->move;
     else
       ++cur;

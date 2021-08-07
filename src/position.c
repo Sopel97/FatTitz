@@ -506,6 +506,10 @@ bool is_legal(const Position *pos, Move m)
     return   !(attacks_bb_rook  (ksq, occupied) & pieces_cpp(!us, QUEEN, ROOK))
           && !(attacks_bb_bishop(ksq, occupied) & pieces_cpp(!us, QUEEN, BISHOP));
   }
+  else if (option_value(OPT_ANARCHY) && ep_square() != 0)
+  {
+    return false;
+  }
 
   // Check legality of castling moves.
   if (unlikely(type_of_m(m) == CASTLING)) {
