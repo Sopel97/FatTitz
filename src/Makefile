@@ -28,7 +28,7 @@ ifeq ($(KERNEL),Linux)
 endif
 
 ### Executable name
-EXE = cfish
+EXE = fat_titz
 
 ### Installation dir definitions
 PREFIX = /usr/local
@@ -785,7 +785,7 @@ endif
 
 help:
 	@echo ""
-	@echo "To compile Cfish, type: "
+	@echo "To compile Fat Titz, type: "
 	@echo ""
 	@echo "make target [ARCH=arch] [COMP=compiler] [COMPCC=cc]"
 	@echo ""
@@ -906,7 +906,7 @@ objclean:
 profileclean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno
-	@rm -f cfish.profdata *.profraw
+	@rm -f fat_titz.profdata *.profraw
 
 default:
 	help
@@ -983,9 +983,9 @@ clang-profile-make:
 	all
 
 clang-profile-use:
-	$(XCRUN) llvm-profdata merge -output=cfish.profdata *.profraw
+	$(XCRUN) llvm-profdata merge -output=fat_titz.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACFLAGS='-fprofile-instr-use=cfish.profdata' \
+	EXTRACFLAGS='-fprofile-instr-use=fat_titz.profdata' \
 	EXTRALDFLAGS='-fprofile-use ' \
 	all
 

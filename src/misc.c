@@ -54,7 +54,7 @@ void print_engine_info(bool to_uci)
 {
   char my_date[64];
 
-  printf("Cfish %s", Version);
+  printf("Fat Titz %s", Version);
 
   if (strlen(Version) == 0) {
     int day, month, year;
@@ -92,7 +92,7 @@ void print_engine_info(bool to_uci)
          " NUMA"
 #endif
          "%s\n", to_uci ? "\nid author The Stockfish developers"
-                      : " by Syzygy based on Stockfish");
+                      : " by Tomasz Sobczyk, Syzygy, and The Stockfish developers");
   fflush(stdout);
 }
 
