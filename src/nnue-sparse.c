@@ -64,14 +64,34 @@ INLINE void hidden_layer(const clipped_t *input, int32_t *output, unsigned dims,
 
     for (int j = 0; j < num_nnz_indices; j += 4)
     {
+#if defined (USE_VNNI)
+      const __m512i mul0 = _mm512_set1_epi32(
+          (input[nnz_indices[j+0]])
+        | (input[nnz_indices[j+1]] << 8)
+        | (input[nnz_indices[j+2]] << 16)
+        | (input[nnz_indices[j+3]] << 24));
+#else
       const __m512i mul0 = _mm512_set1_epi16(input[nnz_indices[j+0]] | (input[nnz_indices[j+1]] << 8));
       const __m512i mul2 = _mm512_set1_epi16(input[nnz_indices[j+2]] | (input[nnz_indices[j+3]] << 8));
+#endif
+
+
       const __m512i* col0 = (&weights[nnz_indices[j+0] * PaddedOutputDimensions + i * TileSize]);
       const __m512i* col1 = (&weights[nnz_indices[j+1] * PaddedOutputDimensions + i * TileSize]);
       const __m512i* col2 = (&weights[nnz_indices[j+2] * PaddedOutputDimensions + i * TileSize]);
       const __m512i* col3 = (&weights[nnz_indices[j+3] * PaddedOutputDimensions + i * TileSize]);
       for (int k = 0; k < NumChunks / 4; ++k)
       {
+#if defined (USE_VNNI)
+        __m512i prod0 = _mm512_unpacklo_epi8(col0[k], col1[k]);
+        __m512i prod1 = _mm512_unpackhi_epi8(col0[k], col1[k]);
+        __m512i prod2 = _mm512_unpacklo_epi8(col2[k], col3[k]);
+        __m512i prod3 = _mm512_unpackhi_epi8(col2[k], col3[k]);
+        acc[k*4 + 0] = _mm512_dpbusd_epi32(acc[k*4 + 0], mul0, _mm512_unpacklo_epi16(prod0, prod2));
+        acc[k*4 + 1] = _mm512_dpbusd_epi32(acc[k*4 + 1], mul0, _mm512_unpackhi_epi16(prod0, prod2));
+        acc[k*4 + 2] = _mm512_dpbusd_epi32(acc[k*4 + 2], mul0, _mm512_unpacklo_epi16(prod1, prod3));
+        acc[k*4 + 3] = _mm512_dpbusd_epi32(acc[k*4 + 3], mul0, _mm512_unpackhi_epi16(prod1, prod3));
+#else
         __m512i prod0 = _mm512_maddubs_epi16(mul0, _mm512_unpacklo_epi8(col0[k], col1[k]));
         __m512i prod1 = _mm512_maddubs_epi16(mul0, _mm512_unpackhi_epi8(col0[k], col1[k]));
         __m512i prod2 = _mm512_maddubs_epi16(mul2, _mm512_unpacklo_epi8(col2[k], col3[k]));
@@ -80,6 +100,7 @@ INLINE void hidden_layer(const clipped_t *input, int32_t *output, unsigned dims,
         acc[k*4 + 1] = _mm512_add_epi32(acc[k*4 + 1], _mm512_madd_epi16(ones, _mm512_unpackhi_epi16(prod0, prod2)));
         acc[k*4 + 2] = _mm512_add_epi32(acc[k*4 + 2], _mm512_madd_epi16(ones, _mm512_unpacklo_epi16(prod1, prod3)));
         acc[k*4 + 3] = _mm512_add_epi32(acc[k*4 + 3], _mm512_madd_epi16(ones, _mm512_unpackhi_epi16(prod1, prod3)));
+#endif
       }
     }
 
@@ -140,14 +161,32 @@ INLINE void hidden_layer(const clipped_t *input, int32_t *output, unsigned dims,
 
     for (int j = 0; j < num_nnz_indices; j += 4)
     {
+#if defined (USE_VNNI)
+      const __m256i mul0 = _mm256_set1_epi32(
+          (input[nnz_indices[j+0]])
+        | (input[nnz_indices[j+1]] << 8)
+        | (input[nnz_indices[j+2]] << 16)
+        | (input[nnz_indices[j+3]] << 24));
+#else
       const __m256i mul0 = _mm256_set1_epi16(input[nnz_indices[j+0]] | (input[nnz_indices[j+1]] << 8));
       const __m256i mul2 = _mm256_set1_epi16(input[nnz_indices[j+2]] | (input[nnz_indices[j+3]] << 8));
+#endif
       const __m256i* col0 = (&weights[nnz_indices[j+0] * PaddedOutputDimensions + i * TileSize]);
       const __m256i* col1 = (&weights[nnz_indices[j+1] * PaddedOutputDimensions + i * TileSize]);
       const __m256i* col2 = (&weights[nnz_indices[j+2] * PaddedOutputDimensions + i * TileSize]);
       const __m256i* col3 = (&weights[nnz_indices[j+3] * PaddedOutputDimensions + i * TileSize]);
       for (int k = 0; k < NumChunks / 4; ++k)
       {
+#if defined (USE_VNNI)
+        __m256i prod0 = _mm256_unpacklo_epi8(col0[k], col1[k]);
+        __m256i prod1 = _mm256_unpackhi_epi8(col0[k], col1[k]);
+        __m256i prod2 = _mm256_unpacklo_epi8(col2[k], col3[k]);
+        __m256i prod3 = _mm256_unpackhi_epi8(col2[k], col3[k]);
+        acc[k*4 + 0] = _mm256_dpbusd_epi32(acc[k*4 + 0], mul0, _mm256_unpacklo_epi16(prod0, prod2));
+        acc[k*4 + 1] = _mm256_dpbusd_epi32(acc[k*4 + 1], mul0, _mm256_unpackhi_epi16(prod0, prod2));
+        acc[k*4 + 2] = _mm256_dpbusd_epi32(acc[k*4 + 2], mul0, _mm256_unpacklo_epi16(prod1, prod3));
+        acc[k*4 + 3] = _mm256_dpbusd_epi32(acc[k*4 + 3], mul0, _mm256_unpackhi_epi16(prod1, prod3));
+#else
         __m256i prod0 = _mm256_maddubs_epi16(mul0, _mm256_unpacklo_epi8(col0[k], col1[k]));
         __m256i prod1 = _mm256_maddubs_epi16(mul0, _mm256_unpackhi_epi8(col0[k], col1[k]));
         __m256i prod2 = _mm256_maddubs_epi16(mul2, _mm256_unpacklo_epi8(col2[k], col3[k]));
@@ -156,6 +195,7 @@ INLINE void hidden_layer(const clipped_t *input, int32_t *output, unsigned dims,
         acc[k*4 + 1] = _mm256_add_epi32(acc[k*4 + 1], _mm256_madd_epi16(ones, _mm256_unpackhi_epi16(prod0, prod2)));
         acc[k*4 + 2] = _mm256_add_epi32(acc[k*4 + 2], _mm256_madd_epi16(ones, _mm256_unpacklo_epi16(prod1, prod3)));
         acc[k*4 + 3] = _mm256_add_epi32(acc[k*4 + 3], _mm256_madd_epi16(ones, _mm256_unpackhi_epi16(prod1, prod3)));
+#endif
       }
     }
 
