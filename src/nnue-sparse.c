@@ -40,7 +40,83 @@ INLINE void hidden_layer(const clipped_t *input, int32_t *output, unsigned dims,
 
   const int PaddedOutputDimensions = 64;
 
-#if defined (USE_AVX2)
+#if defined (USE_AVX512)
+
+  const int ChunkSize = 16;
+  const int NumChunks = 4;
+  const int TileSize = NumChunks * ChunkSize;
+  const int NumTiles = PaddedOutputDimensions / TileSize;
+
+  const __m512i ones = _mm512_set1_epi16(1);
+
+  while (num_nnz_indices % 4 != 0)
+    nnz_indices[num_nnz_indices++] = dims;
+
+  __m512i acc[NumChunks];
+
+  for (int i = 0; i < NumTiles; ++i)
+  {
+    const __m256i* biasesTile = (&biases[i * TileSize]);
+    __m256i* outputTile = (&output[i * TileSize]);
+
+    for (int k = 0; k < NumChunks; ++k)
+      acc[k] = _mm512_setzero_si512();
+
+    for (int j = 0; j < num_nnz_indices; j += 4)
+    {
+      const __m512i mul0 = _mm512_set1_epi16(input[nnz_indices[j+0]] | (input[nnz_indices[j+1]] << 8));
+      const __m512i mul2 = _mm512_set1_epi16(input[nnz_indices[j+2]] | (input[nnz_indices[j+3]] << 8));
+      const __m512i* col0 = (&weights[nnz_indices[j+0] * PaddedOutputDimensions + i * TileSize]);
+      const __m512i* col1 = (&weights[nnz_indices[j+1] * PaddedOutputDimensions + i * TileSize]);
+      const __m512i* col2 = (&weights[nnz_indices[j+2] * PaddedOutputDimensions + i * TileSize]);
+      const __m512i* col3 = (&weights[nnz_indices[j+3] * PaddedOutputDimensions + i * TileSize]);
+      for (int k = 0; k < NumChunks / 4; ++k)
+      {
+        __m512i prod0 = _mm512_maddubs_epi16(mul0, _mm512_unpacklo_epi8(col0[k], col1[k]));
+        __m512i prod1 = _mm512_maddubs_epi16(mul0, _mm512_unpackhi_epi8(col0[k], col1[k]));
+        __m512i prod2 = _mm512_maddubs_epi16(mul2, _mm512_unpacklo_epi8(col2[k], col3[k]));
+        __m512i prod3 = _mm512_maddubs_epi16(mul2, _mm512_unpackhi_epi8(col2[k], col3[k]));
+        acc[k*4 + 0] = _mm512_add_epi32(acc[k*4 + 0], _mm512_madd_epi16(ones, _mm512_unpacklo_epi16(prod0, prod2)));
+        acc[k*4 + 1] = _mm512_add_epi32(acc[k*4 + 1], _mm512_madd_epi16(ones, _mm512_unpackhi_epi16(prod0, prod2)));
+        acc[k*4 + 2] = _mm512_add_epi32(acc[k*4 + 2], _mm512_madd_epi16(ones, _mm512_unpacklo_epi16(prod1, prod3)));
+        acc[k*4 + 3] = _mm512_add_epi32(acc[k*4 + 3], _mm512_madd_epi16(ones, _mm512_unpackhi_epi16(prod1, prod3)));
+      }
+    }
+
+    for (int k = 0; k < NumChunks / 4; ++k)
+    {
+      __m128i acc00 = _mm512_extracti32x4_epi32(acc[k*4 + 0], 0);
+      __m128i acc01 = _mm512_extracti32x4_epi32(acc[k*4 + 0], 1);
+      __m128i acc02 = _mm512_extracti32x4_epi32(acc[k*4 + 0], 2);
+      __m128i acc03 = _mm512_extracti32x4_epi32(acc[k*4 + 0], 3);
+
+      __m128i acc10 = _mm512_extracti32x4_epi32(acc[k*4 + 1], 0);
+      __m128i acc11 = _mm512_extracti32x4_epi32(acc[k*4 + 1], 1);
+      __m128i acc12 = _mm512_extracti32x4_epi32(acc[k*4 + 1], 2);
+      __m128i acc13 = _mm512_extracti32x4_epi32(acc[k*4 + 1], 3);
+
+      __m128i acc20 = _mm512_extracti32x4_epi32(acc[k*4 + 2], 0);
+      __m128i acc21 = _mm512_extracti32x4_epi32(acc[k*4 + 2], 1);
+      __m128i acc22 = _mm512_extracti32x4_epi32(acc[k*4 + 2], 2);
+      __m128i acc23 = _mm512_extracti32x4_epi32(acc[k*4 + 2], 3);
+
+      __m128i acc30 = _mm512_extracti32x4_epi32(acc[k*4 + 3], 0);
+      __m128i acc31 = _mm512_extracti32x4_epi32(acc[k*4 + 3], 1);
+      __m128i acc32 = _mm512_extracti32x4_epi32(acc[k*4 + 3], 2);
+      __m128i acc33 = _mm512_extracti32x4_epi32(acc[k*4 + 3], 3);
+
+      outputTile[k*8 + 0] = _mm256_add_epi32(_mm256_setr_m128i(acc00, acc10), biasesTile[k*8 + 0]);
+      outputTile[k*8 + 1] = _mm256_add_epi32(_mm256_setr_m128i(acc20, acc30), biasesTile[k*8 + 1]);
+      outputTile[k*8 + 2] = _mm256_add_epi32(_mm256_setr_m128i(acc01, acc11), biasesTile[k*8 + 2]);
+      outputTile[k*8 + 3] = _mm256_add_epi32(_mm256_setr_m128i(acc21, acc31), biasesTile[k*8 + 3]);
+      outputTile[k*8 + 4] = _mm256_add_epi32(_mm256_setr_m128i(acc02, acc12), biasesTile[k*8 + 4]);
+      outputTile[k*8 + 5] = _mm256_add_epi32(_mm256_setr_m128i(acc22, acc32), biasesTile[k*8 + 5]);
+      outputTile[k*8 + 6] = _mm256_add_epi32(_mm256_setr_m128i(acc03, acc13), biasesTile[k*8 + 6]);
+      outputTile[k*8 + 7] = _mm256_add_epi32(_mm256_setr_m128i(acc23, acc33), biasesTile[k*8 + 7]);
+    }
+  }
+
+#elif defined (USE_AVX2)
 
   const int ChunkSize = 8;
   const int NumChunks = 8;

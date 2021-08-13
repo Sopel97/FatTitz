@@ -451,10 +451,10 @@ INLINE int transform(const Position *pos, clipped_t *output, uint16_t *nnz_indic
 #if defined (USE_AVX2)
 
     const unsigned numChunks = (16 * kHalfDimensions) / 256;
-    vec8_t *out = (vec8_t *)&output[offset];
+    __m256i *out = (vec8_t *)&output[offset];
     for (unsigned i = 0; i < numChunks / 2; i++) {
-      vec16_t s0 = ((vec16_t *)(*accumulation)[perspectives[p]])[i * 2];
-      vec16_t s1 = ((vec16_t *)(*accumulation)[perspectives[p]])[i * 2 + 1];
+      __m256i s0 = ((__m256i *)(*accumulation)[perspectives[p]])[i * 2];
+      __m256i s1 = ((__m256i *)(*accumulation)[perspectives[p]])[i * 2 + 1];
       out[i] = vec_packs(s0, s1);
 
       unsigned nnz = _mm256_movemask_epi8(_mm256_cmpgt_epi8(out[i], _mm256_setzero_si256()));
