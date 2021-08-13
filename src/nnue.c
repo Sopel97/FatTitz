@@ -455,12 +455,13 @@ INLINE int transform(const Position *pos, clipped_t *output, uint16_t *nnz_indic
     for (unsigned i = 0; i < numChunks / 2; i++) {
       __m256i s0 = ((__m256i *)(*accumulation)[perspectives[p]])[i * 2];
       __m256i s1 = ((__m256i *)(*accumulation)[perspectives[p]])[i * 2 + 1];
-      out[i] = vec_packs(s0, s1);
+      __m256i ss = _mm256_packs_epi16(s0, s1);
+      out[i] = _mm256_permute4x64_epi64(ss, 0b11011000);
 
-      unsigned nnz = _mm256_movemask_epi8(_mm256_cmpgt_epi8(out[i], _mm256_setzero_si256()));
+      unsigned nnz = _mm256_movemask_epi8(_mm256_cmpgt_epi8(ss, _mm256_setzero_si256()));
       unsigned b3 = (nnz >> 24) & 0xFF;
-      unsigned b2 = (nnz >> 16) & 0xFF;
-      unsigned b1 = (nnz >> 8) & 0xFF;
+      unsigned b2 = (nnz >> 8) & 0xFF;
+      unsigned b1 = (nnz >> 16) & 0xFF;
       unsigned b0 = (nnz) & 0xFF;
       unsigned c0 = LookupTableCounts[b0];
       unsigned c1 = LookupTableCounts[b1];
@@ -487,9 +488,10 @@ INLINE int transform(const Position *pos, clipped_t *output, uint16_t *nnz_indic
     for (unsigned i = 0; i < numChunks / 2; i++) {
       vec16_t s0 = ((vec16_t *)(*accumulation)[perspectives[p]])[i * 2];
       vec16_t s1 = ((vec16_t *)(*accumulation)[perspectives[p]])[i * 2 + 1];
-      out[i] = vec_packs(s0, s1);
+      vec8_t ss = vec_packs(s0, s1);
+      out[i] = ss;
 
-      unsigned nnz = _mm_movemask_epi8(_mm_cmpgt_epi8(out[i], _mm_setzero_si128()));
+      unsigned nnz = _mm_movemask_epi8(_mm_cmpgt_epi8(ss, _mm_setzero_si128()));
       unsigned b1 = (nnz >> 8) & 0xFF;
       unsigned b0 = (nnz) & 0xFF;
       unsigned c0 = LookupTableCounts[b0];
