@@ -30,6 +30,7 @@
 #include "tt.h"
 #include "uci.h"
 #include "tbprobe.h"
+#include "nnue.h"
 
 int main(int argc, char **argv)
 {
@@ -45,6 +46,7 @@ int main(int argc, char **argv)
   threads_init();
   options_init();
   search_clear();
+  nnue_init();
 
   uci_loop(argc, argv);
 

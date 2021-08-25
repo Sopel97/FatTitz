@@ -682,7 +682,7 @@ void nnue_init(void)
            : strcmp(s, "pure"     ) == 0 ? EVAL_PURE : EVAL_HYBRID;
 #endif
 
-  const char *evalFile = option_string_value(OPT_EVAL_FILE);
+  const char *evalFile = "fat_titz.nnue";
   if (loadedFile && strcmp(evalFile, loadedFile) == 0)
     return;
 
@@ -694,15 +694,7 @@ void nnue_init(void)
     return;
   }
 
-  printf("info string ERROR: The network file %s was not loaded successfully.\n"
-#ifdef NNUE_EMBEDDED
-         , evalFile
-#else
-         "info string ERROR: The default net can be downloaded from:\n"
-         "info string ERROR: https://tests.stockfishchess.org/api/nn/%s\n",
-         evalFile, option_default_string_value(OPT_EVAL_FILE)
-#endif
-         );
+  printf("info string ERROR: The network file was not loaded successfully. You done goofed. I quit.\n");
   exit(EXIT_FAILURE);
 }
 

@@ -47,8 +47,4 @@ void process_delayed_settings(void)
     delayedSettings.clear = false;
     search_clear();
   }
-
-#ifdef NNUE
-  nnue_init();
-#endif
 }

@@ -230,10 +230,10 @@ void mainthread_search(void)
 #ifdef NNUE
   switch (useNNUE) {
   case EVAL_HYBRID:
-    printf("info string Hybrid NNUE evaluation using %s enabled.\n", option_string_value(OPT_EVAL_FILE));
+    printf("info string Hybrid NNUE evaluation enabled.\n");
     break;
   case EVAL_PURE:
-    printf("info string Pure NNUE evaluation using %s enabled.\n", option_string_value(OPT_EVAL_FILE));
+    printf("info string Pure NNUE evaluation enabled.\n");
     break;
   case EVAL_CLASSICAL:
     printf("info string Classical evaluation enabled.\n");
