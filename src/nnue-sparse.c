@@ -26,7 +26,7 @@ typedef uint32_t mask2_t;
 // OutputLayer = AffineTransform<HiddenLayer2, 1>
 // 32 x out_t_sparse -> 1 x int32_t
 
-static alignas(64) weight_t_sparse hidden1_weights[8][64 * 2049];
+static alignas(64) weight_t_sparse hidden1_weights[8][64 * (2048*2 + 1)];
 static alignas(64) weight_t hidden2_weights[8][64 * 64];
 static alignas(64) weight_t output_weights[8][1 * 64];
 
@@ -306,7 +306,7 @@ INLINE void hidden_layer(const clipped_t *input, int32_t *output, unsigned dims,
 }
 
 struct NetData {
-  alignas(64) int8_t input[2048];
+  alignas(64) int8_t input[2048*2];
   int32_t hidden1_values[64];
   clipped_t hidden1_clipped[64];
   int32_t hidden2_values[64];
@@ -317,7 +317,7 @@ struct NetData {
 Value nnue_evaluate(const Position *pos, bool adjusted)
 {
   int32_t out_value;
-  alignas(8) uint16_t nnz_indices[2048 + 16];
+  alignas(8) uint16_t nnz_indices[2048*2 + 16];
 #ifdef ALIGNMENT_HACK // work around a bug in old gcc on Windows
   uint8_t buf[sizeof(struct NetData) + 63];
   struct NetData *b = (struct NetData *)(buf + ((((uintptr_t)buf-1) ^ 0x3f) & 0x3f));
@@ -332,7 +332,7 @@ Value nnue_evaluate(const Position *pos, bool adjusted)
 
   int num_nnz_indices = transform(pos, B(input), nnz_indices, bucket, &psqt_val);
 
-  hidden_layer(B(input), B(hidden1_values), 2048, hidden1_biases[bucket],
+  hidden_layer(B(input), B(hidden1_values), 2048*2, hidden1_biases[bucket],
       hidden1_weights[bucket], nnz_indices, num_nnz_indices);
   clip_propagate(B(hidden1_values), B(hidden1_clipped), 64);
 

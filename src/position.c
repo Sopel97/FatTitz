@@ -765,7 +765,7 @@ bool gives_check_special(const Position *pos, Stack *st, Move m)
 static void append_changed_indices(const Position *pos, const Color c,
     const DirtyPiece * restrict dp, IndexList * restrict removed, IndexList * restrict added)
 {
-  Square ksq = square_of(c, KING);
+  Square ksq = orient(c, square_of(c, KING));
   for (int i = 0; i < dp->dirtyNum; i++) {
     Piece pc = dp->pc[i];
     if (dp->from[i] != SQ_NONE)

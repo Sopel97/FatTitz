@@ -81,26 +81,14 @@ typedef struct {
   unsigned values[32];
 } IndexList;
 
-INLINE Square orient(Color c, Square s, Square ksq)
+INLINE Square orient(Color c, Square s)
 {
-  return s ^ (c * SQ_A8) ^ ((file_of(ksq) < FILE_E) * SQ_H1);
+  return s ^ (c == WHITE ? 0x00 : 0x38);
 }
-
-static const int KingBuckets[64] = {
-  -1, -1, -1, -1, 31, 30, 29, 28,
-  -1, -1, -1, -1, 27, 26, 25, 24,
-  -1, -1, -1, -1, 23, 22, 21, 20,
-  -1, -1, -1, -1, 19, 18, 17, 16,
-  -1, -1, -1, -1, 15, 14, 13, 12,
-  -1, -1, -1, -1, 11, 10, 9, 8,
-  -1, -1, -1, -1, 7, 6, 5, 4,
-  -1, -1, -1, -1, 3, 2, 1, 0
-};
 
 INLINE unsigned make_index(Color c, Square s, Piece pc, Square ksq)
 {
-  int o_ksq = orient(c, ksq, ksq);
-  return orient(c, s, ksq) + PieceToIndex[c][pc] + PS_END * KingBuckets[o_ksq];
+  return orient(c, s) + PieceToIndex[c][pc] + PS_END * ksq;
 }
 
 struct Stack {

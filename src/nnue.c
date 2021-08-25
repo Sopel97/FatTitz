@@ -61,10 +61,10 @@ enum {
 };
 
 enum {
-  kHalfDimensions = 1024,
+  kHalfDimensions = 2048,
   kPsqtBuckets = 8,
   kLayerStacks = 8,
-  FtInDims = 32 * PS_END, // 32 * 704
+  FtInDims = 64 * PS_END, // 64 * 704
 };
 
 // USE_MMX generates _mm_empty() instructions, so undefine if not needed
@@ -72,7 +72,7 @@ enum {
 #undef USE_MMX
 #endif
 
-static_assert(kHalfDimensions % 1024 == 0, "kHalfDimensions should be a multiple of 512");
+static_assert(kHalfDimensions % 1024 == 0, "");
 
 #define VECTOR
 
@@ -265,7 +265,7 @@ void init_lookup()
 static void append_active_indices(const Position *pos, const Color c,
     IndexList *active)
 {
-  Square ksq = square_of(c, KING);
+  Square ksq = orient(c, square_of(c, KING));
   Bitboard bb = pieces();
   while (bb) {
     Square s = pop_lsb(&bb);
@@ -431,7 +431,7 @@ INLINE int transform(const Position *pos, clipped_t *output, uint16_t *nnz_indic
   update_accumulator(pos, WHITE);
   update_accumulator(pos, BLACK);
 
-  int16_t (*accumulation)[2][1024] = &pos->st->accumulator.accumulation;
+  int16_t (*accumulation)[2][2048] = &pos->st->accumulator.accumulation;
   int32_t (*accumulation_psqt)[2][8] = &pos->st->accumulator.accumulation_psqt;
 
   const Color perspectives[2] = { stm(), !stm() };
@@ -604,9 +604,9 @@ static bool init_weights(const void *evalData, unsigned size)
     for (unsigned i = 0; i < 64; i++, d += 4)
       hidden1_biases[k][i] = readu_le_u32(d);
 #if defined (NNUE_SPARSE)
-    d = read_hidden_weights_sparse(hidden1_weights[k], 64, 2048, d);
+    d = read_hidden_weights_sparse(hidden1_weights[k], 64, 2048*2, d);
 #else
-    d = read_hidden_weights_dense(hidden1_weights[k], 64, 2048, d);
+    d = read_hidden_weights_dense(hidden1_weights[k], 64, 2048*2, d);
 #endif
 
     for (unsigned i = 0; i < 64; i++, d += 4)
