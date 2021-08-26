@@ -86,6 +86,13 @@ static void on_book_file2(Option *opt)
   pb_init(&polybook2, opt->valString);
 }
 
+static void on_use_nnue(Option *opt)
+{
+  const char *s = option_string_value(OPT_USE_NNUE);
+  useNNUE =  strcmp(s, "classical") == 0 ? EVAL_CLASSICAL
+           : strcmp(s, "pure"     ) == 0 ? EVAL_PURE : EVAL_HYBRID;
+}
+
 static void on_best_book_move(Option *opt)
 {
   pb_set_best_book_move(opt->value);
@@ -147,7 +154,7 @@ static Option optionsMap[] = {
 #ifdef NNUE
 #ifndef NNUE_PURE
   { "Use NNUE", OPT_TYPE_COMBO, 0, 0, 0,
-    "Hybrid var Hybrid var Pure var Classical", NULL, 0, NULL },
+    "Hybrid var Hybrid var Pure var Classical", on_use_nnue, 0, NULL },
 #endif
 #endif
   { "LargePages", OPT_TYPE_CHECK, 1, 0, 0, NULL, on_large_pages, 0, NULL },

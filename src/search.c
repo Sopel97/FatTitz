@@ -361,6 +361,8 @@ void mainthread_search(void)
                  -VALUE_INFINITE, VALUE_INFINITE);
 
   flockfile(stdout);
+  if (option_value(OPT_ANARCHY) && ep_square() != 0)
+    printf("info string Holy hell!\n");
   printf("bestmove %s", uci_move(buf, bestThread->rootMoves->move[0].pv[0], is_chess960()));
 
   if (bestThread->rootMoves->move[0].pvSize > 1 || extract_ponder_from_tt(&bestThread->rootMoves->move[0], pos))
