@@ -3,7 +3,7 @@ This is a **FREE** UCI-compatibile chess engine. It is a fork of [cfish](https:/
 
 Thanks to Norman Schidt and Albert Sliver for inspiration on creating my own fork of Stockfish. Also big thanks to Robert Houdart for great optimization ideas, overall making the engine almost 20% faster!
 
-This engine uses a HalfKAv2-2048x2-64-64-1 evaluation network, which contains whopping **4 times** the knowledge of Stockfish 14. It was trained partially on Lc0 data, which gives it a unique positional style, while still preserving the tactical sharpness of Stockfish. The network was trained using a modification of the [state-of-the-art NNUE trainer](https://github.com/glinscott/nnue-pytorch), utilizing publicly available datasets [1](https://drive.google.com/file/d/1VlhnHL8f-20AXhGkILujnNXHwy9T-MQw/view?usp=sharing), [2](https://drive.google.com/file/d/1seGNOqcVdvK_vPNq98j-zV3XPE5zWAeq/view?usp=sharing), [3](https://drive.google.com/file/d/1RFkQES3DpsiJqsOtUshENtzPfFgUmEff/view?usp=sharing)
+This engine uses a HalfKAv2-2048x2-64-64-1 evaluation network, which contains whopping **4 times** the knowledge of Stockfish 14. It was trained partially on Lc0 data, which gives it a unique positional style, while still preserving the **legendary surgical precision of Stockfish.** The network was trained using a modification of the [state-of-the-art NNUE trainer](https://github.com/glinscott/nnue-pytorch), utilizing publicly available datasets [1](https://drive.google.com/file/d/1VlhnHL8f-20AXhGkILujnNXHwy9T-MQw/view?usp=sharing), [2](https://drive.google.com/file/d/1seGNOqcVdvK_vPNq98j-zV3XPE5zWAeq/view?usp=sharing), [3](https://drive.google.com/file/d/1RFkQES3DpsiJqsOtUshENtzPfFgUmEff/view?usp=sharing)
 
 Due to the large size the release is available only on google drive [here](https://drive.google.com/drive/folders/1hthWck-5UsXBToDduJ0REB_ZdXvN0r6X?usp=sharing). It includes Windows and Linux binaries for all supported architectures, along with the network. This is the only place where the network can be found.
 
@@ -12,7 +12,7 @@ Due to the large size the release is available only on google drive [here](https
 - Polyglot support
 - Anarchy mode
     - `setoption name Anarchy value true`
-    - makes en-passant forced
+    - makes en peasant forced
 - 64-bit hash key
     - reduces the amount of hash collisions and allows for more robust long analysis
     - resizing the transposition table preserves the contents as much as possible
@@ -51,7 +51,7 @@ The optimization options currently enabled with `extra=yes` appear to be less ef
 ## UCI settings
 
 #### Anarchy
-Enable/disable anarchy mode. In anarchy mode en-passant is forced. Disabled by default
+Enable/disable anarchy mode. In anarchy mode en peasant is forced. Disabled by default
 
 #### PersistentTTMinDepth
 Controls the minimum depth of serialized TT entries
@@ -116,7 +116,7 @@ Name of NNUE network file.
 By default, Fat Titz uses NNUE in Stockfish's Hybrid mode, where certain positions are evaluated with the old handcrafted evaluation. Other modes are Pure (NNUE only) and Classical (handcrafted evaluation only).
 
 #### LargePages
-Control allocation of the hash table as Large Pages (LP). On Windows this option does not appear if the operating system lacks LP support or if LP has not properly been set up.
+Control allocation of the hash table as Large Pages (LP). On Windows this option does not appear if the operating system lacks LP support or if LP has not properly been set up. With 3l33t hAxX0r skills it is possible to enable Large Pages even on Windows Home editions.
 
 #### NUMA
 This option only appears on NUMA machines, i.e. machines with two or more CPUs. If this option is set to "on" or "all", Fat Titz will spread its search threads over all nodes. If the option is set to "off", Fat Titz will ignore the NUMA architecture of the machine. On Linux, a subset of nodes may be specified on which to run the search threads (e.g. "0-1" or "0,1" to limit the search threads to nodes 0 and 1 out of nodes 0-3).
