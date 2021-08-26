@@ -640,6 +640,7 @@ static bool verify_net(const void *evalData, size_t size)
 {
   const char *d = evalData;
   if (readu_le_u32(d) != NnueVersion) return false;
+  if (size != 188321188) return false;
 
   return true;
 }
@@ -689,12 +690,15 @@ void nnue_init(void)
   if (loadedFile)
     free(loadedFile);
 
+  printf("info string Loading the evaluation network...\n");
+
   if (load_eval_file(evalFile)) {
     loadedFile = strdup(evalFile);
+    printf("info string Evaluation network successfully loaded.\n");
     return;
   }
 
-  printf("info string ERROR: The network file was not loaded successfully. You done goofed. I quit.\n");
+  printf("info string ERROR: The evaluation network file was not loaded successfully. You done goofed. I quit.\n");
   exit(EXIT_FAILURE);
 }
 
