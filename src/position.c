@@ -1009,7 +1009,7 @@ void do_move(Position *pos, Move m, int givesCheck)
 #endif
 
   pos->sideToMove = !pos->sideToMove;
-  pos->nodes += 1 + ((key & 0xFF) <= 0xFF/7); // an improvement over an idea from Robert Houdart
+  pos->nodes = pos->nodes + 1; // Starting to become more serious by not using typical C++ code nor any hacks
 
   set_check_info(pos);
 
