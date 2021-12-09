@@ -1563,13 +1563,12 @@ INLINE Value qsearch_node(Position *pos, Stack *ss, Value alpha, Value beta,
   TTEntry *tte;
   Key posKey;
   Move ttMove, move, bestMove;
-  Value bestValue, value, ttValue, futilityValue, futilityBase, oldAlpha;
+  Value bestValue, value, ttValue, futilityValue, futilityBase;
   bool pvHit, givesCheck;
   Depth ttDepth;
   int moveCount;
 
   if (PvNode) {
-    oldAlpha = alpha; // To flag BOUND_EXACT when eval above alpha and no available moves
     (ss+1)->pv = pv;
     ss->pv[0] = 0;
   }
@@ -1737,8 +1736,7 @@ INLINE Value qsearch_node(Position *pos, Stack *ss, Value alpha, Value beta,
     return mated_in(ss->ply); // Plies to mate from the root
 
   tte_save(tte, posKey, value_to_tt(bestValue, ss->ply), pvHit,
-      bestValue >= beta ? BOUND_LOWER :
-      PvNode && bestValue > oldAlpha  ? BOUND_EXACT : BOUND_UPPER,
+      bestValue >= beta ? BOUND_LOWER : BOUND_UPPER,
       ttDepth, bestMove, ss->staticEval);
 
   assert(bestValue > -VALUE_INFINITE && bestValue < VALUE_INFINITE);
