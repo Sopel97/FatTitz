@@ -81,7 +81,7 @@ INLINE void tte_save(TTEntry *tte, Key k, Value v, bool pv, int b, Depth d,
 
   // Don't overwrite more valuable entries
   if (  k != tte->key
-      || d - DEPTH_OFFSET > tte->depth8 - 4
+      || d - DEPTH_OFFSET + 2 * pv > tte->depth8 - 4
       || b == BOUND_EXACT)
   {
     assert(d > DEPTH_OFFSET && d < 256 + DEPTH_OFFSET);
