@@ -506,7 +506,7 @@ void thread_search(Position *pos)
 
       // Reset aspiration window starting size
       if (pos->rootDepth >= 4) {
-        Value previousScore = rm->move[pvIdx].previousScore;
+        Value previousScore = rm->move[pvIdx].averageScore;
         delta = 17+ (int)previousScore * previousScore / 32768;   //Orig 16384
         alpha = max(previousScore - delta, -VALUE_INFINITE);
         beta  = min(previousScore + delta,  VALUE_INFINITE);
@@ -1409,6 +1409,8 @@ moves_loop: // When in check search starts from here
           break;
         }
 
+      rm->averageScore = rm->averageScore != -VALUE_INFINITE ? (2 * value + rm->averageScore) / 3 : value;
+
       // PV move or new best move ?
       if (moveCount == 1 || value > alpha) {
         rm->score = value;
@@ -2148,6 +2150,7 @@ void start_thinking(Position *root, bool ponderMode)
       rm->move[i].pv[0] = moves->move[i].pv[0];
       rm->move[i].score = -VALUE_INFINITE;
       rm->move[i].previousScore = -VALUE_INFINITE;
+      rm->move[i].averageScore = -VALUE_INFINITE;
       rm->move[i].selDepth = 0;
       rm->move[i].tbRank = moves->move[i].tbRank;
       rm->move[i].tbScore = moves->move[i].tbScore;
