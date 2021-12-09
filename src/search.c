@@ -715,7 +715,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
   bool givesCheck, improving, didLMR;
   bool captureOrPromotion, inCheck, doFullDepthSearch, moveCountPruning;
-  bool ttCapture, singularQuietLMR, noLMRExtension;
+  bool ttCapture, singularQuietLMR;
   Piece movedPiece;
   int moveCount, captureCount, quietCount, bestMoveCount, improvement;
 
@@ -1083,7 +1083,7 @@ moves_loop: // When in check search starts from here
   mp_init(pos, ttMove, depth, ss->ply);
 
   value = bestValue;
-  singularQuietLMR = moveCountPruning = noLMRExtension = false;
+  singularQuietLMR = moveCountPruning = false;
 
   // Indicate PvNodes that will probably fail low if node was searched with
   // non-PV search at depth equal to or greater than current depth and the
@@ -1226,7 +1226,6 @@ moves_loop: // When in check search starts from here
             && ss->doubleExtensions < 3)
         {
           extension = 2;
-          noLMRExtension = true;
         }
       }
 
@@ -1351,7 +1350,6 @@ moves_loop: // When in check search starts from here
       // this may lead to hidden double extensions if newDepth got it own extension
       // before).
       int deeper =   r >= -1                   ? 0
-                   : noLMRExtension            ? 0
                    : moveCount <= 3 && r <= -3 ? 2
                    : moveCount <= 5            ? 1
                    : (PvNode && depth > 6)     ? 1
