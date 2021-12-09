@@ -909,10 +909,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
         && (tte_bound(tte) & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
       eval = ttValue;
   } else {
-    if ((ss-1)->currentMove != MOVE_NULL)
-      ss->staticEval = eval = evaluate(pos);
-    else
-      ss->staticEval = eval = -(ss-1)->staticEval;
+    ss->staticEval = eval = evaluate(pos);
 
     if(!excludedMove)
       tte_save(tte, posKey, VALUE_NONE, ss->ttPv, BOUND_NONE, DEPTH_NONE, 0, eval);
