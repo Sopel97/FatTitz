@@ -718,11 +718,11 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   bool captureOrPromotion, inCheck, doFullDepthSearch, moveCountPruning;
   bool ttCapture, singularQuietLMR, noLMRExtension;
   Piece movedPiece;
-  int moveCount, captureCount, quietCount;
+  int moveCount, captureCount, quietCount, bestMoveCount;
 
   // Step 1. Initialize node
   inCheck = checkers();
-  moveCount = captureCount = quietCount =  ss->moveCount = 0;
+  moveCount = bestMoveCount = captureCount = quietCount =  ss->moveCount = 0;
   bestValue = -VALUE_INFINITE;
   maxValue = VALUE_INFINITE;
 
@@ -1311,7 +1311,8 @@ moves_loop: // When in check search starts from here
     {
       Depth r = reduction(improving, depth, moveCount, rangeReduction > 2);
 
-      if (PvNode)
+      if (   PvNode
+          && bestMoveCount <= 3)
           r--;
 
       // Decrease reduction if the ttHit runing average is large
@@ -1461,7 +1462,10 @@ moves_loop: // When in check search starts from here
           update_pv(ss->pv, move, (ss+1)->pv);
 
         if (PvNode && value < beta) // Update alpha! Always alpha < beta
+        {
           alpha = value;
+          bestMoveCount++;
+        }
         else {
           assert(value >= beta); // Fail high
           break;
