@@ -350,7 +350,7 @@ Value nnue_evaluate(const Position *pos, bool adjusted)
   int positional = out_value;
 
   int delta_npm = abs(non_pawn_material_c(WHITE) - non_pawn_material_c(BLACK));
-  int entertainment = (adjusted && delta_npm <= BishopValueMg - KnightValueMg ? 7 : 0);
+  int entertainment = (adjusted && delta_npm <= RookValueMg - BishopValueMg ? 7 : 0);
 
   int A = 128 - entertainment;
   int B = 128 + entertainment;

@@ -65,7 +65,7 @@ void time_init(Color us, int ply)
   TimePoint timeLeft = max(1, Limits.time[us] + Limits.inc[us] * (mtg - 1) - moveOverhead * (2 + mtg));
 
   // Use extra time with larger increments
-  double optExtra = clamp(1.0 + 10.0 * Limits.inc[us] / Limits.time[us], 1.0, 1.1);
+  double optExtra = clamp(1.0 + 12.0 * Limits.inc[us] / Limits.time[us], 1.0, 1.12);
 
   // A user may scale time usage by setting UCI option "Slow Mover".
   // Default is 100 and changing this value will probably lose Elo.
