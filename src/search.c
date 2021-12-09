@@ -190,6 +190,7 @@ void search_clear(void)
   TB_release();
 
   mainThread.previousScore = VALUE_INFINITE;
+  mainThread.previousAverageScore = VALUE_INFINITE;
   mainThread.previousTimeReduction = 1;
 }
 
@@ -375,6 +376,7 @@ void mainthread_search(void)
   }
 
   mainThread.previousScore = bestThread->rootMoves->move[0].score;
+  mainThread.previousAverageScore = bestThread->rootMoves->move[0].averageScore;
 
   // Send new PV when needed
   if (bestThread != pos)
@@ -619,7 +621,8 @@ skip_search:
         && !Threads.stop
         && !Threads.stopOnPonderhit)
     {
-      double fallingEval = (318 + 6 * (mainThread.previousScore - bestValue)
+      double fallingEval = (142 + 6 * (mainThread.previousScore - bestValue)
+                                + 6 * (mainThread.previousAverageScore - bestValue)
                                 + 6 * (mainThread.iterValue[iterIdx] - bestValue)) / 825.0;
       fallingEval = clamp(fallingEval, 0.5, 1.5);
 
