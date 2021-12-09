@@ -49,11 +49,32 @@ static int base_ct;
 // Different node types, used as template parameter
 enum { NonPV, PV };
 
-static const uint64_t ttHitAverageWindow     = 4096;
-static const uint64_t ttHitAverageResolution = 1024;
-
 INLINE int futility_margin(Depth d, bool improving) {
   return 214 * (d - improving);
+}
+
+// Check if the current thread is in a search explosion
+int search_explosion(Position* thisThread) {
+
+  uint64_t nodesNow = thisThread->nodes;
+  bool explosive =    RunningAverage_is_greater(&(thisThread->doubleExtensionAverage[WHITE]), 2, 100)
+                   || RunningAverage_is_greater(&(thisThread->doubleExtensionAverage[BLACK]), 2, 100);
+
+  if (explosive)
+     thisThread->nodesLastExplosive = nodesNow;
+  else
+     thisThread->nodesLastNormal = nodesNow;
+
+  if (   explosive
+      && thisThread->state == EXPLOSION_NONE
+      && nodesNow - thisThread->nodesLastNormal > 6000000)
+      thisThread->state = MUST_CALM_DOWN;
+
+  if (   thisThread->state == MUST_CALM_DOWN
+      && nodesNow - thisThread->nodesLastExplosive > 6000000)
+      thisThread->state = EXPLOSION_NONE;
+
+  return thisThread->state;
 }
 
 // Reductions lookup tables, initialized at startup
@@ -434,7 +455,13 @@ void thread_search(Position *pos)
 
   RootMoves *rm = pos->rootMoves;
   multiPV = min(multiPV, rm->size);
-  pos->ttHitAverage = ttHitAverageWindow * ttHitAverageResolution / 2;
+  RunningAverage_set(&pos->ttHitAverage, 50, 100);                  // initialize the running average at 50%
+  RunningAverage_set(&pos->doubleExtensionAverage[WHITE], 0, 100);  // initialize the running average at 0%
+  RunningAverage_set(&pos->doubleExtensionAverage[BLACK], 0, 100);  // initialize the running average at 0%
+
+  pos->nodesLastExplosive = pos->nodes;
+  pos->nodesLastNormal    = pos->nodes;
+  pos->state = EXPLOSION_NONE;
   int searchAgainCounter = 0;
 
   // Iterative deepening loop until requested to stop or the target depth
@@ -644,6 +671,12 @@ skip_search:
 INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
     Depth depth, bool cutNode, const int NT)
 {
+  // Step 0. Limit search explosion
+  if (   ss->ply > 10
+      && search_explosion(pos) == MUST_CALM_DOWN
+      && depth > (ss-1)->depth)
+    depth = (ss-1)->depth;
+
   const bool PvNode = NT == PV;
   const bool rootNode = PvNode && ss->ply == 0;
   const Depth maxNextDepth = rootNode ? depth : depth + 1;
@@ -683,7 +716,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
   bool givesCheck, improving, didLMR;
   bool captureOrPromotion, inCheck, doFullDepthSearch, moveCountPruning;
-  bool ttCapture, singularQuietLMR;
+  bool ttCapture, singularQuietLMR, noLMRExtension;
   Piece movedPiece;
   int moveCount, captureCount, quietCount;
 
@@ -741,7 +774,11 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   (ss+1)->excludedMove = bestMove = 0;
   (ss+2)->killers[0] = (ss+2)->killers[1] = 0;
   ss->doubleExtensions = (ss-1)->doubleExtensions;
+  ss->depth            = depth;
   Square prevSq = to_sq((ss-1)->currentMove);
+
+  // Update the running average statistics for double extensions
+  RunningAverage_update(&(pos->doubleExtensionAverage[stm()]), ss->depth > (ss-1)->depth);
 
   // Initialize statScore to zero for the grandchildren of the current
   // position. So the statScore is shared between all grandchildren and only
@@ -771,8 +808,8 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
       && move_is_ok((ss-1)->currentMove))
     lph_update(*pos->lowPlyHistory, ss->ply - 1, (ss-1)->currentMove, stat_bonus(depth - 5));
 
-  // pos->ttHitAverage can be used to approximate the running average of ttHit
-  pos->ttHitAverage = (ttHitAverageWindow - 1) * pos->ttHitAverage / ttHitAverageWindow + ttHitAverageResolution * ss->ttHit;
+  // running average of ttHit
+  RunningAverage_update(&(pos->ttHitAverage), ss->ttHit);
 
   // At non-PV nodes we check for an early TT cutoff.
   if (  !PvNode
@@ -1041,8 +1078,7 @@ moves_loop: // When in check search starts from here
   mp_init(pos, ttMove, depth, ss->ply);
 
   value = bestValue;
-  singularQuietLMR = moveCountPruning = false;
-  bool doubleExtension = false;
+  singularQuietLMR = moveCountPruning = noLMRExtension = false;
 
   // Indicate PvNodes that will probably fail low if node was searched with
   // non-PV search at depth equal to or greater than current depth and the
@@ -1179,13 +1215,13 @@ moves_loop: // When in check search starts from here
         extension = 1;
         singularQuietLMR = !ttCapture;
 
-        // Avoid search explosion by limiting the number of double extensions to at most 3
+        // Avoid search explosion by limiting the number of double extensions
         if (   !PvNode
             && value < singularBeta - 93
             && ss->doubleExtensions < 3)
         {
           extension = 2;
-          doubleExtension = true;
+          noLMRExtension = true;
         }
       }
 
@@ -1270,7 +1306,7 @@ moves_loop: // When in check search starts from here
           r--;
 
       // Decrease reduction if the ttHit runing average is large
-      if (pos->ttHitAverage > 537 * ttHitAverageResolution * ttHitAverageWindow / 1024)
+      if (RunningAverage_is_greater(&(pos->ttHitAverage), 537, 1024))
         r--;
 
       // Decrease reduction if position is or has been on the PV and the node
@@ -1310,7 +1346,18 @@ moves_loop: // When in check search starts from here
           r -= ss->statScore / 14721;
       }
 
-      Depth d = clamp(newDepth - r, 1, newDepth + (r < -1 && (moveCount <= 5 || (depth > 6 && PvNode)) && !doubleExtension));
+      // In general we want to cap the LMR depth search at newDepth. But if
+      // reductions are really negative and movecount is low, we allow this move
+      // to be searched deeper than the first move in specific cases (note that
+      // this may lead to hidden double extensions if newDepth got it own extension
+      // before).
+      int deeper =   r >= -1               ? 0
+                   : noLMRExtension        ? 0
+                   : moveCount <= 5        ? 1
+                   : (depth > 6 && PvNode) ? 1
+                   :                         0;
+
+      Depth d = clamp(newDepth - r, 1, newDepth + deeper);
 
       value = -search_NonPV(pos, ss+1, -(alpha+1), d, 1);
 
