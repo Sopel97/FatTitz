@@ -608,6 +608,12 @@ skip_search:
       skill.pick_best(multiPV);
 #endif
 
+    // Use part of the gained time from a previous stable move for this move
+    for (int i = 0; i < Threads.numThreads; i++) {
+      totBestMoveChanges += Threads.pos[i]->bestMoveChanges;
+      Threads.pos[i]->bestMoveChanges = 0;
+    }
+
     // Do we have time for the next iteration? Can we stop searching now?
     if (    use_time_management()
         && !Threads.stop
@@ -621,12 +627,6 @@ skip_search:
       // accordingly
       timeReduction = lastBestMoveDepth + 9 < pos->completedDepth ? 1.92 : 0.95;
       double reduction = (1.47 + mainThread.previousTimeReduction) / (2.32 * timeReduction);
-
-      // Use part of the gained time from a previous stable move for this move
-      for (int i = 0; i < Threads.numThreads; i++) {
-        totBestMoveChanges += Threads.pos[i]->bestMoveChanges;
-        Threads.pos[i]->bestMoveChanges = 0;
-      }
 
       double bestMoveInstability = 1.073 + max(1.0, 2.25 - 9.9 / pos->rootDepth)
                                           * totBestMoveChanges / Threads.numThreads;
