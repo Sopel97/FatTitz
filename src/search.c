@@ -1007,18 +1007,15 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
            && ttValue < probCutBeta))
   {
     mp_init_pc(pos, ttMove, probCutBeta - ss->staticEval);
-    int probCutCount = 2 + 2 * cutNode;
     bool ttPv = ss->ttPv;
     ss->ttPv = false;
 
-    while (  (move = next_move(pos, 0))
-           && probCutCount)
+    while (  (move = next_move(pos, 0)))
       if (move != excludedMove && is_legal(pos, move)) {
         assert(is_capture_or_promotion(pos, move));
         assert(depth >= 5);
 
         captureOrPromotion = true;
-        probCutCount--;
 
         ss->currentMove = move;
         ss->history = &(*pos->counterMoveHistory)[inCheck][captureOrPromotion][moved_piece(move)][to_sq(move)];
