@@ -203,7 +203,6 @@ struct Position {
   Stack *stack;
   uint64_t nodes;
   uint64_t tbHits;
-  RunningAverage ttHitAverage;
   RunningAverage doubleExtensionAverage[2];
   uint64_t nodesLastExplosive;
   uint64_t nodesLastNormal;
