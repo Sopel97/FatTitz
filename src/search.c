@@ -1244,7 +1244,7 @@ moves_loop: // When in check search starts from here
         ss->excludedMove = 0;
 
         if (value >= beta)
-          return beta;
+          extension = -2;
       }
 
       // The call to search_NonPV with the same value of ss messed up our
