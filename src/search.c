@@ -929,7 +929,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
       && !(ss-1)->checkersBB
       && !captured_piece())
   {
-    int bonus = clamp(-depth * 4 * ((ss-1)->staticEval + ss->staticEval), -1000, 1000);
+    int bonus = clamp(-16 * ((ss-1)->staticEval + ss->staticEval), -2000, 2000);
     history_update(*pos->mainHistory, !stm(), (ss-1)->currentMove, bonus);
   }
 
