@@ -1267,6 +1267,14 @@ moves_loop: // When in check search starts from here
     {
       extension = 1;
     }
+    // Quiet ttMove extensions
+    else if (   PvNode
+             && move == ttMove
+             && move == ss->killers[0]
+             && (*cmh)[movedPiece][to_sq(move)] >= 10000)
+    {
+      extension = 1;
+    }
 
     // Add extension to new depth
     newDepth += extension;
