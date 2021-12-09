@@ -64,6 +64,9 @@ void time_init(Color us, int ply)
   // Make sure that timeLeft > 0 since we may use it as a divisor
   TimePoint timeLeft = max(1, Limits.time[us] + Limits.inc[us] * (mtg - 1) - moveOverhead * (2 + mtg));
 
+  // Use extra time with larger increments
+  double optExtra = clamp(1.0 + 10.0 * Limits.inc[us] / Limits.time[us], 1.0, 1.1);
+
   // A user may scale time usage by setting UCI option "Slow Mover".
   // Default is 100 and changing this value will probably lose Elo.
   timeLeft = slowMover * timeLeft / 100;
@@ -73,13 +76,13 @@ void time_init(Color us, int ply)
   // game time for the current move, so also cap to 20% of available game time.
   if (Limits.movestogo == 0) {
     optScale = min(0.0084 + pow(ply + 3.0, 0.5) * 0.0042,
-                    0.2 * Limits.time[us] / (double)timeLeft);
+                    0.2 * Limits.time[us] / (double)timeLeft) * optExtra;
     maxScale = min(7.0, 4.0 + ply / 12.0);
   }
   // x moves in y seconds (+z increment)
   else {
-    optScale = min((0.8 + ply / 120.0) / mtg,
-                     0.8 * Limits.time[us] / (double)timeLeft);
+    optScale = min((0.88 + ply / 116.4) / mtg,
+                     0.88 * Limits.time[us] / (double)timeLeft);
     maxScale = min(6.3, 1.5 + 0.11 * mtg);
   }
 
