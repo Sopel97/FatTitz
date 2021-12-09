@@ -1343,8 +1343,7 @@ moves_loop: // When in check search starts from here
       // this may lead to hidden double extensions if newDepth got it own extension
       // before).
       int deeper =   r >= -1                   ? 0
-                   : moveCount <= 3            ? 2
-                   : moveCount <= 5            ? 1
+                   : moveCount <= 5            ? 2
                    : (PvNode && depth > 6)     ? 1
                    :                             0;
 
