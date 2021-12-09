@@ -689,6 +689,8 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
     if (alpha >= beta)
       return alpha;
   }
+  else
+      pos->rootDelta = beta - alpha;
 
   // Dive into quiescense search when the depth reaches zero
   if (depth <= 0)
@@ -1295,6 +1297,10 @@ moves_loop: // When in check search starts from here
       if (   PvNode
           && bestMoveCount <= 3)
           r--;
+
+      // Increases reduction for PvNodes that have small window
+      if (PvNode && beta - alpha < pos->rootDelta / 4)
+          r++;
 
       // Decrease reduction if position is or has been on the PV and the node
       // is not likely to fail low
