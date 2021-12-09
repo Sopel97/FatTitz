@@ -453,7 +453,6 @@ void thread_search(Position *pos)
 
   RootMoves *rm = pos->rootMoves;
   multiPV = min(multiPV, rm->size);
-  RunningAverage_set(&pos->ttHitAverage, 50, 100);                  // initialize the running average at 50%
   RunningAverage_set(&pos->doubleExtensionAverage[WHITE], 0, 100);  // initialize the running average at 0%
   RunningAverage_set(&pos->doubleExtensionAverage[BLACK], 0, 100);  // initialize the running average at 0%
 
@@ -805,9 +804,6 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
       && !captured_piece()
       && move_is_ok((ss-1)->currentMove))
     lph_update(*pos->lowPlyHistory, ss->ply - 1, (ss-1)->currentMove, stat_bonus(depth - 5));
-
-  // running average of ttHit
-  RunningAverage_update(&(pos->ttHitAverage), ss->ttHit);
 
   // At non-PV nodes we check for an early TT cutoff.
   if (  !PvNode
@@ -1299,10 +1295,6 @@ moves_loop: // When in check search starts from here
       if (   PvNode
           && bestMoveCount <= 3)
           r--;
-
-      // Decrease reduction if the ttHit runing average is large
-      if (RunningAverage_is_greater(&(pos->ttHitAverage), 537, 1024))
-        r--;
 
       // Decrease reduction if position is or has been on the PV and the node
       // is not likely to fail low
