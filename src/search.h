@@ -35,6 +35,7 @@ struct RootMove {
   int pvSize;
   Value score;
   Value previousScore;
+  Value averageScore;
   int selDepth;
   int tbRank;
   Value tbScore;
