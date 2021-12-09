@@ -864,7 +864,7 @@ static Value fix_FRC(const Position *pos)
 }
 
 #define adjusted_NNUE() \
-  (nnue_evaluate(pos, true) * (903 + mat) / 1024 \
+  (nnue_evaluate(pos, true) * (898 + mat) / 1024 \
    + (is_chess960() ? fix_FRC(pos) : 0))
 
 #endif
@@ -875,7 +875,7 @@ Value evaluate(const Position *pos)
 
 #ifdef NNUE
 
-  const int mat = 32 * non_pawn_material() / 1024 + 32 * popcount(pieces_p(PAWN));
+  const int mat = 33 * non_pawn_material() / 1024 + 24 * popcount(pieces_p(PAWN));
   if (useNNUE == EVAL_HYBRID) {
     Value psq = abs(eg_value(psq_score()));
     int r50 = rule50_count();
@@ -895,7 +895,7 @@ Value evaluate(const Position *pos)
 #endif
 
   // Damp down the evalation linearly when shuffling
-  v = v * (100 - rule50_count()) / 100;
+  v = v * (207 - rule50_count()) / 207;
 
   return clamp(v, VALUE_TB_LOSS_IN_MAX_PLY + 1, VALUE_TB_WIN_IN_MAX_PLY - 1);
 }
