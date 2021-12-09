@@ -96,7 +96,7 @@ INLINE int futility_move_count(bool improving, Depth depth)
 static Value stat_bonus(Depth depth)
 {
   int d = depth;
-  return d > 14 ? 73 : 6 * d * d + 229 * d - 215;
+  return min((6 * d + 229) * d - 215 , 2000);
 }
 
 // Add a small random component to draw evaluations to keep search dynamic
@@ -1442,7 +1442,7 @@ moves_loop: // When in check search starts from here
         // iteration. This information is used for time management: When
         // the best move changes frequently, we allocate some more time.
         if (    moveCount > 1
-            && !thisThread->pvIdx)
+            && !pos->pvIdx)
           pos->bestMoveChanges++;
       } else
         // All other moves but the PV are set to the lowest value: this is
@@ -1498,7 +1498,7 @@ moves_loop: // When in check search starts from here
     if (!is_capture_or_promotion(pos, bestMove)) {
       int bonus =  bestValue > beta + PawnValueMg
                  ? stat_bonus(depth + 1)
-                 : min(stat_bonus(depth+1), stat_bonus(depth));
+                 : stat_bonus(depth);
       update_quiet_stats(pos, ss, bestMove, bonus, depth);
 
       // Decrease all the other played quiet moves
