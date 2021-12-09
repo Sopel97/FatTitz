@@ -1318,9 +1318,8 @@ moves_loop: // When in check search starts from here
       if (ss->ttPv && !likelyFailLow)
         r -= 2;
 
-      // Increase reduction at root and non-PV nodes when the best move
-      // does not change frequently
-      if ((rootNode || !PvNode) && pos->bestMoveChanges <= 2)
+      // Increase reduction at non-PV nodes when the best move does not change frequently
+      if (!PvNode && pos->bestMoveChanges <= 2)
         r++;
 
       // Decrease reduction if opponent's move count is high
