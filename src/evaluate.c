@@ -849,21 +849,18 @@ static Value fix_FRC(const Position *pos)
     return 0;
 
   Value v = 0;
+  Value correction = 0;
 
   if (piece_on(SQ_A1) == W_BISHOP && piece_on(SQ_B2) == W_PAWN)
-    v += !is_empty(SQ_B3) ? -CorneredBishopV * 4
-                          : -CorneredBishopV * 3;
+    correction -= CorneredBishopV;
   if (piece_on(SQ_H1) == W_BISHOP && piece_on(SQ_G2) == W_PAWN)
-    v += !is_empty(SQ_G3) ? -CorneredBishopV * 4
-                          : -CorneredBishopV * 3;
+    correction -= CorneredBishopV;
   if (piece_on(SQ_A8) == B_BISHOP && piece_on(SQ_B7) == B_PAWN)
-    v += !is_empty(SQ_B6) ? CorneredBishopV * 4
-                          : CorneredBishopV * 3;
+    correction += CorneredBishopV;
   if (piece_on(SQ_H8) == B_BISHOP && piece_on(SQ_G7) == B_PAWN)
-    v += !is_empty(SQ_G6) ? CorneredBishopV * 4
-                          : CorneredBishopV * 3;
+    correction += CorneredBishopV;
 
-  return stm() == WHITE ? v : -v;
+  return stm() == WHITE ? (v + 5*correction) : -(v + 5*correction);
 }
 
 #define adjusted_NNUE() \
