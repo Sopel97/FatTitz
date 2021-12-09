@@ -1897,9 +1897,6 @@ static void update_quiet_stats(const Position *pos, Stack *ss, Move move,
   history_update(*pos->mainHistory, c, move, bonus);
   update_cm_stats(ss, moved_piece(move), to_sq(move), bonus);
 
-  if (type_of_p(moved_piece(move)) != PAWN)
-    history_update(*pos->mainHistory, c, reverse_move(move), -bonus);
-
   if (move_is_ok((ss-1)->currentMove)) {
     Square prevSq = to_sq((ss-1)->currentMove);
     (*pos->counterMoves)[piece_on(prevSq)][prevSq] = move;
