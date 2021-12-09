@@ -1089,9 +1089,9 @@ void do_null_move(Position *pos)
   }
 
   st->key ^= zob.side;
+  st->rule50++;
   prefetch(tt_first_entry(st->key));
 
-  st->rule50++;
   st->pliesFromNull = 0;
 
   pos->sideToMove = !pos->sideToMove;
