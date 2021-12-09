@@ -1136,8 +1136,8 @@ moves_loop: // When in check search starts from here
 
         // Futility pruning: parent node
         if (   !inCheck
-            && lmrDepth < 7
-            && ss->staticEval + 172 + 157 * lmrDepth <= alpha
+            && lmrDepth < 8
+            && ss->staticEval + 172 + 145 * lmrDepth <= alpha
             &&  (*cmh )[movedPiece][to_sq(move)]
               + (*fmh )[movedPiece][to_sq(move)]
               + (*fmh2)[movedPiece][to_sq(move)]
@@ -1167,7 +1167,7 @@ moves_loop: // When in check search starts from here
         && (tte_bound(tte) & BOUND_LOWER)
         &&  tte_depth(tte) >= depth - 3)
     {
-      Value singularBeta = ttValue - 2 * depth;
+      Value singularBeta = ttValue - 3 * depth;
       Depth singularDepth = (depth - 1) / 2;
       ss->excludedMove = move;
       Move cm = ss->countermove;
