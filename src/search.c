@@ -1184,7 +1184,7 @@ moves_loop: // When in check search starts from here
         // Futility pruning: parent node
         if (   !inCheck
             && lmrDepth < 8
-            && ss->staticEval + 172 + 145 * lmrDepth + history / 128 <= alpha
+            && ss->staticEval + 142 + 139 * lmrDepth + history / 64 <= alpha
             &&  (*cmh )[movedPiece][to_sq(move)]
               + (*fmh )[movedPiece][to_sq(move)]
               + (*fmh2)[movedPiece][to_sq(move)]
