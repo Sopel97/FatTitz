@@ -1350,11 +1350,12 @@ moves_loop: // When in check search starts from here
       // to be searched deeper than the first move in specific cases (note that
       // this may lead to hidden double extensions if newDepth got it own extension
       // before).
-      int deeper =   r >= -1               ? 0
-                   : noLMRExtension        ? 0
-                   : moveCount <= 5        ? 1
-                   : (depth > 6 && PvNode) ? 1
-                   :                         0;
+      int deeper =   r >= -1                   ? 0
+                   : noLMRExtension            ? 0
+                   : moveCount <= 3 && r <= -3 ? 2
+                   : moveCount <= 5            ? 1
+                   : (PvNode && depth > 6)     ? 1
+                   :                             0;
 
       Depth d = clamp(newDepth - r, 1, newDepth + deeper);
 
