@@ -109,6 +109,28 @@ void unmap_file(const void *data, map_t map);
 void *allocate_memory(size_t size, bool lp, alloc_t *alloc);
 void free_memory(alloc_t *alloc);
 
+// RunningAverage : a class to calculate a running average of a series of values.
+// For efficiency, all computations are done with integers.
+
+#define RA_PERIOD     4096ll
+#define RA_RESOLUTION 1024ll
+typedef struct RunningAverage {
+      int64_t average;
+} RunningAverage;
+
+// Reset the running average to rational value p / q
+inline void RunningAverage_set(RunningAverage* ra, int64_t p, int64_t q)
+  { ra->average = p * RA_PERIOD * RA_RESOLUTION / q; }
+
+// Update average with value v
+inline void RunningAverage_update(RunningAverage* ra, int64_t v)
+  { ra->average = RA_RESOLUTION * v + (RA_PERIOD - 1) * ra->average / RA_PERIOD; }
+
+// Test if average is strictly greater than rational a / b
+inline bool RunningAverage_is_greater(const RunningAverage* ra, int64_t a, int64_t b)
+  { return b * ra->average > a * RA_PERIOD * RA_RESOLUTION ; }
+
+
 struct PRNG
 {
   uint64_t s;
