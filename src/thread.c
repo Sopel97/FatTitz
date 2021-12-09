@@ -78,9 +78,17 @@ static THREAD_FUNC thread_init(void *arg)
       cmhTables[t] = calloc(sizeof(CounterMoveHistoryStat), 1);
     for (int chk = 0; chk < 2; chk++)
       for (int c = 0; c < 2; c++)
+      {
+        for (int ja = 0; ja < 16; ja++)
+          for (int ka = 0; ka < 64; ka++)
+            for (int j = 0; j < 16; j++)
+              for (int k = 0; k < 64; k++)
+                (*cmhTables[t])[chk][c][ja][ka][j][k] = -71;
+
         for (int j = 0; j < 16; j++)
           for (int k = 0; k < 64; k++)
             (*cmhTables[t])[chk][c][0][0][j][k] = CounterMovePruneThreshold - 1;
+      }
   }
 
   Position *pos;
