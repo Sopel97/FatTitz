@@ -897,6 +897,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
 
   // Step 7. Futility pruning: child node
   if (   !PvNode
+      &&  depth < 9
       &&  eval - futility_margin(depth, improving) >= beta
       &&  eval < VALUE_KNOWN_WIN)  // Do not return unproven wins
     return eval; // - futility_margin(depth); (do not do the right thing)
@@ -1096,7 +1097,7 @@ moves_loop: // When in check search starts from here
     // Calculate new depth for this move
     newDepth = depth - 1;
 
-    // Step 13. Pruning at shallow depth
+    // Step 13. Pruning at shallow depth. Depth conditions are important for mate finding.
     if (  !rootNode
         && non_pawn_material_c(stm())
         && bestValue > VALUE_TB_LOSS_IN_MAX_PLY)
@@ -1131,6 +1132,7 @@ moves_loop: // When in check search starts from here
 
         // Futility pruning: parent node
         if (   !inCheck
+            && lmrDepth < 7
             && ss->staticEval + 173 + 157 * lmrDepth <= alpha //orig 174
             &&  (*cmh )[movedPiece][to_sq(move)]
               + (*fmh )[movedPiece][to_sq(move)]
