@@ -80,10 +80,10 @@ int search_explosion(Position* thisThread) {
 // Reductions lookup tables, initialized at startup
 static int Reductions[MAX_MOVES]; // [depth or moveNumber]
 
-INLINE Depth reduction(int i, Depth d, int mn)
+INLINE Depth reduction(int i, Depth d, int mn, bool rangeReduction)
 {
   int r = Reductions[d] * Reductions[mn];
-  return (r + 534) / 1024 + (!i && r > 904);
+  return (r + 534) / 1024 + (!i && r > 904) + rangeReduction;
 }
 
 INLINE int futility_move_count(bool improving, Depth depth)
@@ -1055,6 +1055,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
 moves_loop: // When in check search starts from here
 
   ttCapture = ttMove && is_capture_or_promotion(pos, ttMove);
+  int rangeReduction = 0;
 
   // Step 11. A small Probcut idea, when we are in check
   probCutBeta = beta + 409;
@@ -1146,7 +1147,7 @@ moves_loop: // When in check search starts from here
       moveCountPruning = moveCount >= futility_move_count(improving, depth);
 
       // Reduced depth of the next LMR search
-      int lmrDepth = max(newDepth - reduction(improving, depth, moveCount), 0);
+      int lmrDepth = max(newDepth - reduction(improving, depth, moveCount, rangeReduction > 2), 0);
 
       if (   captureOrPromotion
           || givesCheck)
@@ -1300,7 +1301,7 @@ moves_loop: // When in check search starts from here
             || !ss->ttPv)
         && (!PvNode || ss->ply > 1 || pos->threadIdx % 4 != 3))
     {
-      Depth r = reduction(improving, depth, moveCount);
+      Depth r = reduction(improving, depth, moveCount, rangeReduction > 2);
 
       if (PvNode)
           r--;
@@ -1360,6 +1361,10 @@ moves_loop: // When in check search starts from here
       Depth d = clamp(newDepth - r, 1, newDepth + deeper);
 
       value = -search_NonPV(pos, ss+1, -(alpha+1), d, 1);
+
+      // Range reductions (~3 Elo)
+      if (ss->staticEval - value < 30 && depth > 7)
+        rangeReduction++;
 
       doFullDepthSearch = value > alpha && d < newDepth;
       didLMR = true;
