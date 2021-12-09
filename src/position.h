@@ -211,6 +211,7 @@ struct Position {
   Color nmpColor;
   Depth rootDepth;
   Depth completedDepth;
+  Value rootDelta;
   Score trend;
   int state;
 
