@@ -809,7 +809,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   // At non-PV nodes we check for an early TT cutoff.
   if (  !PvNode
       && ss->ttHit
-      && tte_depth(tte) >= depth
+      && tte_depth(tte) > depth
       && ttValue != VALUE_NONE // Possible in case of TT access race.
       && (ttValue >= beta ? (tte_bound(tte) & BOUND_LOWER)
                           : (tte_bound(tte) & BOUND_UPPER)))
