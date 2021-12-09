@@ -459,7 +459,10 @@ void thread_search(Position *pos)
   pos->nodesLastExplosive = pos->nodes;
   pos->nodesLastNormal    = pos->nodes;
   pos->state = EXPLOSION_NONE;
-  int searchAgainCounter = 0;
+  pos->trend              = SCORE_ZERO;
+  pos->optimism[  stm()]  = 25;
+  pos->optimism[1-stm()]  = -pos->optimism[stm()];
+  int searchAgainCounter  = 0;
 
   // Iterative deepening loop until requested to stop or the target depth
   // is reached.
@@ -511,11 +514,14 @@ void thread_search(Position *pos)
         alpha = max(previousScore - delta, -VALUE_INFINITE);
         beta  = min(previousScore + delta,  VALUE_INFINITE);
 
-        // Adjust contempt based on root move's previousScore
-
-        int tr = 113 * previousScore / (abs(previousScore) + 147);
+        // Adjust trend and optimism based on root move's previousScore
+        int tr = sigmoid(previousScore, 0, 0, 147, 113, 1);
         pos->trend = stm() == WHITE ?  make_score(tr, tr / 2)
                                     : -make_score(tr, tr / 2);
+
+        int opt = sigmoid(previousScore, 0, 25, 147, 14464, 256);
+        pos->optimism[  stm()] = (Value)opt;
+        pos->optimism[1-stm()] = -pos->optimism[stm()];
       }
 
       // Start with a small aspiration window and, in the case of a fail

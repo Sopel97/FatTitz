@@ -175,6 +175,7 @@ struct Position {
   Value rootDelta;
   Score trend;
   int state;
+  Value optimism[2];
 
   // Pointers to thread-specific tables.
   CounterMoveStat *counterMoves;
