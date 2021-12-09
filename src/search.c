@@ -1295,12 +1295,9 @@ moves_loop: // When in check search starts from here
       Depth r = reduction(improving, depth, moveCount, rangeReduction > 2);
 
       if (   PvNode
-          && bestMoveCount <= 3)
+          && bestMoveCount <= 3
+          && beta - alpha >= pos->rootDelta / 4)
           r--;
-
-      // Increases reduction for PvNodes that have small window
-      if (PvNode && beta - alpha < pos->rootDelta / 4)
-          r++;
 
       // Decrease reduction if position is or has been on the PV and the node
       // is not likely to fail low
