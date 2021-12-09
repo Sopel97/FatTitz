@@ -795,6 +795,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   ttValue = ss->ttHit ? value_from_tt(tte_value(tte), ss->ply, rule50_count()) : VALUE_NONE;
   ttMove =  rootNode ? pos->rootMoves->move[pos->pvIdx].pv[0]
           : ss->ttHit    ? tte_move(tte) : 0;
+  ttCapture = ttMove && is_capture_or_promotion(pos, ttMove);
   if (!excludedMove)
     ss->ttPv = PvNode || (ss->ttHit && tte_is_pv(tte));
 
@@ -816,7 +817,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
     // If ttMove is quiet, update move sorting heuristics on TT hit.
     if (ttMove) {
       if (ttValue >= beta) {
-        if (!is_capture_or_promotion(pos, ttMove))
+        if (!ttCapture)
           update_quiet_stats(pos, ss, ttMove, stat_bonus(depth), depth);
 
         // Extra penalty for early quiet moves of the previous ply
@@ -824,7 +825,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
           update_cm_stats(ss-1, piece_on(prevSq), prevSq, -stat_bonus(depth + 1));
       }
       // Penalty for a quiet ttMove that fails low
-      else if (!is_capture_or_promotion(pos, ttMove)) {
+      else if (!ttCapture) {
         int penalty = -stat_bonus(depth);
         history_update(*pos->mainHistory, stm(), ttMove, penalty);
         update_cm_stats(ss, moved_piece(ttMove), to_sq(ttMove), penalty);
@@ -1046,7 +1047,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
 
 moves_loop: // When in check search starts from here
 
-  ttCapture = ttMove && is_capture_or_promotion(pos, ttMove);
+  (void)0;
   int rangeReduction = 0;
 
   // Step 11. A small Probcut idea, when we are in check
