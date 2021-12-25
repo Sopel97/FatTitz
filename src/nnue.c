@@ -683,7 +683,7 @@ void nnue_init(void)
            : strcmp(s, "pure"     ) == 0 ? EVAL_PURE : EVAL_HYBRID;
 #endif
 
-  const char *evalFile = "fat_titz.nnue";
+  const char *evalFile = option_string_value(OPT_EVAL_FILE);
   if (loadedFile && strcmp(evalFile, loadedFile) == 0)
     return;
 

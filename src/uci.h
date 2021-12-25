@@ -62,6 +62,7 @@ enum {
   OPT_BOOK_BEST_MOVE,
   OPT_BOOK_DEPTH,
 #ifdef NNUE
+  OPT_EVAL_FILE,
 #ifndef NNUE_PURE
   OPT_USE_NNUE,
 #endif
