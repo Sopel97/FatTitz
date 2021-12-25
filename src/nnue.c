@@ -640,7 +640,7 @@ static bool verify_net(const void *evalData, size_t size)
 {
   const char *d = evalData;
   if (readu_le_u32(d) != NnueVersion) return false;
-  if (size != 188321188) return false;
+  //if (size != 188321188) return false;
 
   return true;
 }
