@@ -621,9 +621,8 @@ skip_search:
         && !Threads.stop
         && !Threads.stopOnPonderhit)
     {
-      double fallingEval = (142 + 6 * (mainThread.previousScore - bestValue)
-                                + 6 * (mainThread.previousAverageScore - bestValue)
-                                + 6 * (mainThread.iterValue[iterIdx] - bestValue)) / 825.0;
+      double fallingEval = (142 + 12 * (mainThread.previousAverageScore - bestValue)
+                                +  6 * (mainThread.iterValue[iterIdx] - bestValue)) / 825.0;
       fallingEval = clamp(fallingEval, 0.5, 1.5);
 
       // If the best move is stable over several iterations, reduce time
