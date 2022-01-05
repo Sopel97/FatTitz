@@ -725,7 +725,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   Value bestValue, value, ttValue, eval, maxValue, probCutBeta;
   bool givesCheck, improving, didLMR;
   bool captureOrPromotion, inCheck, doFullDepthSearch, moveCountPruning;
-  bool ttCapture, singularQuietLMR;
+  bool ttCapture;
   Piece movedPiece;
   int moveCount, captureCount, quietCount, bestMoveCount, improvement;
 
@@ -1087,7 +1087,7 @@ moves_loop: // When in check search starts from here
   mp_init(pos, ttMove, depth, ss->ply);
 
   value = bestValue;
-  singularQuietLMR = moveCountPruning = false;
+  moveCountPruning = false;
 
   // Indicate PvNodes that will probably fail low if node was searched with
   // non-PV search at depth equal to or greater than current depth and the
@@ -1228,7 +1228,6 @@ moves_loop: // When in check search starts from here
 
       if (value < singularBeta) {
         extension = 1;
-        singularQuietLMR = !ttCapture;
 
         // Avoid search explosion by limiting the number of double extensions
         if (   !PvNode
@@ -1329,10 +1328,6 @@ moves_loop: // When in check search starts from here
 
       // Decrease reduction if opponent's move count is high
       if ((ss-1)->moveCount > 13)
-        r--;
-
-      // Decrease reduction if ttMove has been singularly extended
-      if (singularQuietLMR)
         r--;
 
       // Increase reduction for cut nodes (~3 Elo)
