@@ -140,7 +140,7 @@ static Value value_from_tt(Value v, int ply, int r50c);
 static void update_pv(Move *pv, Move move, Move *childPv);
 static void update_cm_stats(Stack *ss, Piece pc, Square s, int bonus);
 static void update_quiet_stats(const Position *pos, Stack *ss, Move move,
-    int bonus, Depth depth);
+    int bonus);
 static void update_capture_stats(const Position *pos, Move move, Move *captures,
     int captureCnt, int bonus);
 static void check_time(void);
@@ -184,7 +184,6 @@ void search_clear(void)
     stats_clear(pos->counterMoves);
     stats_clear(pos->mainHistory);
     stats_clear(pos->captureHistory);
-    stats_clear(pos->lowPlyHistory);
   }
 
   TB_release();
@@ -440,10 +439,6 @@ void thread_search(Position *pos)
       for (int i = 0; i < 4; i++)
         mainThread.iterValue[i] = mainThread.previousScore;
   }
-
-  memmove(&((*pos->lowPlyHistory)[0]), &((*pos->lowPlyHistory)[2]),
-      (MAX_LPH - 2) * sizeof((*pos->lowPlyHistory)[0]));
-  memset(&((*pos->lowPlyHistory)[MAX_LPH - 2]), 0, 2 * sizeof((*pos->lowPlyHistory)[0]));
 
   int multiPV = option_value(OPT_MULTI_PV);
 #if 0
@@ -811,13 +806,6 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   if (!excludedMove)
     ss->ttPv = PvNode || (ss->ttHit && tte_is_pv(tte));
 
-  if (   ss->ttPv
-      && depth > 12
-      && ss->ply - 1 < MAX_LPH
-      && !captured_piece()
-      && move_is_ok((ss-1)->currentMove))
-    lph_update(*pos->lowPlyHistory, ss->ply - 1, (ss-1)->currentMove, stat_bonus(depth - 5));
-
   // At non-PV nodes we check for an early TT cutoff.
   if (  !PvNode
       && ss->ttHit
@@ -830,7 +818,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
     if (ttMove) {
       if (ttValue >= beta) {
         if (!ttCapture)
-          update_quiet_stats(pos, ss, ttMove, stat_bonus(depth), depth);
+          update_quiet_stats(pos, ss, ttMove, stat_bonus(depth));
 
         // Extra penalty for early quiet moves of the previous ply
         if ((ss-1)->moveCount <= 2 && !captured_piece())
@@ -1499,7 +1487,7 @@ moves_loop: // When in check search starts from here
       int bonus =  bestValue > beta + PawnValueMg
                  ? stat_bonus(depth + 1)
                  : stat_bonus(depth);
-      update_quiet_stats(pos, ss, bestMove, bonus, depth);
+      update_quiet_stats(pos, ss, bestMove, bonus);
 
       // Decrease all the other played quiet moves
       for (int i = 0; i < quietCount; i++) {
@@ -1901,7 +1889,7 @@ static void update_capture_stats(const Position *pos, Move move, Move *captures,
 // plus follow-up move history when a new quiet best move is found.
 
 static void update_quiet_stats(const Position *pos, Stack *ss, Move move,
-    int bonus, Depth depth)
+    int bonus)
 {
   if (ss->killers[0] != move) {
     ss->killers[1] = ss->killers[0];
@@ -1916,9 +1904,6 @@ static void update_quiet_stats(const Position *pos, Stack *ss, Move move,
     Square prevSq = to_sq((ss-1)->currentMove);
     (*pos->counterMoves)[piece_on(prevSq)][prevSq] = move;
   }
-
-  if (depth > 11 && ss->ply < MAX_LPH)
-    lph_update(*pos->lowPlyHistory, ss->ply, move, stat_bonus(depth - 7));
 }
 
 #if 0
