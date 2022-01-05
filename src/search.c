@@ -1350,7 +1350,7 @@ moves_loop: // When in check search starts from here
         rangeReduction++;
 
       doFullDepthSearch = value > alpha && d < newDepth;
-      doDeeperSearch = value > alpha + 88;
+      doDeeperSearch = value > (alpha + 62 + 20 * (newDepth - d));
       didLMR = true;
     } else {
       doFullDepthSearch = !PvNode || moveCount > 1;
