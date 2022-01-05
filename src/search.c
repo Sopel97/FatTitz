@@ -80,10 +80,10 @@ int search_explosion(Position* thisThread) {
 // Reductions lookup tables, initialized at startup
 static int Reductions[MAX_MOVES]; // [depth or moveNumber]
 
-INLINE Depth reduction(int i, Depth d, int mn, bool rangeReduction, Value delta, Value rootDelta)
+INLINE Depth reduction(int i, Depth d, int mn, Value delta, Value rootDelta)
 {
   int r = Reductions[d] * Reductions[mn];
-  return (r + 1358 - (int)(delta) * 1024 / (int)(rootDelta)) / 1024 + (!i && r > 904) + rangeReduction;
+  return (r + 1358 - (int)(delta) * 1024 / (int)(rootDelta)) / 1024 + (!i && r > 904);
 }
 
 INLINE int futility_move_count(bool improving, Depth depth)
@@ -1050,9 +1050,6 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
 
 moves_loop: // When in check search starts from here
 
-  (void)0;
-  int rangeReduction = 0;
-
   // Step 11. A small Probcut idea, when we are in check
   probCutBeta = beta + 409;
   if (   inCheck
@@ -1143,7 +1140,7 @@ moves_loop: // When in check search starts from here
       moveCountPruning = moveCount >= futility_move_count(improving, depth);
 
       // Reduced depth of the next LMR search
-      int lmrDepth = max(newDepth - reduction(improving, depth, moveCount, rangeReduction > 2, delta, pos->rootDelta), 0);
+      int lmrDepth = max(newDepth - reduction(improving, depth, moveCount, delta, pos->rootDelta), 0);
 
       if (   captureOrPromotion
           || givesCheck)
@@ -1296,7 +1293,7 @@ moves_loop: // When in check search starts from here
             || !captureOrPromotion
             || (cutNode && (ss-1)->moveCount > 1)))
     {
-      Depth r = reduction(improving, depth, moveCount, rangeReduction > 2, delta, pos->rootDelta);
+      Depth r = reduction(improving, depth, moveCount, delta, pos->rootDelta);
 
       if (   PvNode
           && bestMoveCount <= 3)
@@ -1344,10 +1341,6 @@ moves_loop: // When in check search starts from here
       Depth d = clamp(newDepth - r, 1, newDepth + deeper);
 
       value = -search_NonPV(pos, ss+1, -(alpha+1), d, 1);
-
-      // Range reductions (~3 Elo)
-      if (ss->staticEval - value < 30 && depth > 7)
-        rangeReduction++;
 
       doFullDepthSearch = value > alpha && d < newDepth;
       doDeeperSearch = value > (alpha + 62 + 20 * (newDepth - d));
