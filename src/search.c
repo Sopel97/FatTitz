@@ -1652,7 +1652,8 @@ INLINE Value qsearch_node(Position *pos, Stack *ss, Value alpha, Value beta,
   // to search the moves. Because the depth is <= 0 here, only captures,
   // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
   // be generated.
-  mp_init_q(pos, ttMove, depth, to_sq((ss-1)->currentMove));
+  Square prevSq = to_sq((ss-1)->currentMove);
+  mp_init_q(pos, ttMove, depth, prevSq);
 
   // Loop through the moves until no moves remain or a beta cutoff occurs
   while ((move = next_move(pos, 0))) {
@@ -1669,6 +1670,7 @@ INLINE Value qsearch_node(Position *pos, Stack *ss, Value alpha, Value beta,
     // Futility pruning and moveCount pruning
     if (    bestValue > VALUE_TB_LOSS_IN_MAX_PLY
         && !givesCheck
+        && to_sq(move) != prevSq
         &&  futilityBase > -VALUE_KNOWN_WIN
         && type_of_m(move) != PROMOTION)
     {
