@@ -1258,12 +1258,6 @@ moves_loop: // When in check search starts from here
       ss->mpKillers[0] = k1; ss->mpKillers[1] = k2;
 
     }
-    else if (   (PvNode || cutNode)
-             && captureOrPromotion
-             && moveCount != 1)
-    {
-      extension = 1;
-    }
     else if (   givesCheck
              && depth > 6
              && abs(ss->staticEval) > 100)
