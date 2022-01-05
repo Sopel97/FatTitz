@@ -80,10 +80,10 @@ int search_explosion(Position* thisThread) {
 // Reductions lookup tables, initialized at startup
 static int Reductions[MAX_MOVES]; // [depth or moveNumber]
 
-INLINE Depth reduction(int i, Depth d, int mn, bool rangeReduction)
+INLINE Depth reduction(int i, Depth d, int mn, bool rangeReduction, Value delta, Value rootDelta)
 {
   int r = Reductions[d] * Reductions[mn];
-  return (r + 534) / 1024 + (!i && r > 904) + rangeReduction;
+  return (r + 1358 - (int)(delta) * 1024 / (int)(rootDelta)) / 1024 + (!i && r > 904) + rangeReduction;
 }
 
 INLINE int futility_move_count(bool improving, Depth depth)
@@ -1133,7 +1133,7 @@ moves_loop: // When in check search starts from here
 
     // Calculate new depth for this move
     newDepth = depth - 1;
-
+    Value delta = beta - alpha;
     // Step 13. Pruning at shallow depth. Depth conditions are important for mate finding.
     if (  !rootNode
         && non_pawn_material_c(stm())
@@ -1143,7 +1143,7 @@ moves_loop: // When in check search starts from here
       moveCountPruning = moveCount >= futility_move_count(improving, depth);
 
       // Reduced depth of the next LMR search
-      int lmrDepth = max(newDepth - reduction(improving, depth, moveCount, rangeReduction > 2), 0);
+      int lmrDepth = max(newDepth - reduction(improving, depth, moveCount, rangeReduction > 2, delta, pos->rootDelta), 0);
 
       if (   captureOrPromotion
           || givesCheck)
@@ -1298,21 +1298,16 @@ moves_loop: // When in check search starts from here
             || !captureOrPromotion
             || (cutNode && (ss-1)->moveCount > 1)))
     {
-      Depth r = reduction(improving, depth, moveCount, rangeReduction > 2);
+      Depth r = reduction(improving, depth, moveCount, rangeReduction > 2, delta, pos->rootDelta);
 
       if (   PvNode
-          && bestMoveCount <= 3
-          && beta - alpha >= pos->rootDelta / 4)
+          && bestMoveCount <= 3)
           r--;
 
       // Decrease reduction if position is or has been on the PV and the node
       // is not likely to fail low
       if (ss->ttPv && !likelyFailLow)
         r -= 2;
-
-      // Increase reduction at non-PV nodes when the best move does not change frequently
-      if (!PvNode)
-        r++;
 
       // Decrease reduction if opponent's move count is high
       if ((ss-1)->moveCount > 13)
