@@ -1050,9 +1050,6 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
 
 moves_loop: // When in check search starts from here
 
-  (void)0;
-  int rangeReduction = 0;
-
   // Step 11. A small Probcut idea, when we are in check
   probCutBeta = beta + 409;
   if (   inCheck
@@ -1349,10 +1346,6 @@ moves_loop: // When in check search starts from here
       Depth d = clamp(newDepth - r, 1, newDepth + deeper);
 
       value = -search_NonPV(pos, ss+1, -(alpha+1), d, 1);
-
-      // Range reductions (~3 Elo)
-      if (ss->staticEval - value < 30 && depth > 7)
-        rangeReduction++;
 
       doFullDepthSearch = value > alpha && d < newDepth;
       doDeeperSearch = value > (alpha + 62 + 20 * (newDepth - d));
