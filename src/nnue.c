@@ -640,7 +640,7 @@ static bool verify_net(const void *evalData, size_t size)
 {
   const char *d = evalData;
   if (readu_le_u32(d) != NnueVersion) return false;
-  if (size != 188321188) return false;
+  if (size != 188132774) return false;
 
   return true;
 }
@@ -683,7 +683,7 @@ void nnue_init(void)
            : strcmp(s, "pure"     ) == 0 ? EVAL_PURE : EVAL_HYBRID;
 #endif
 
-  const char *evalFile = "fat_titz.nnue";
+  const char *evalFile = "fat_titz_2.nnue";
   if (loadedFile && strcmp(evalFile, loadedFile) == 0)
     return;
 
