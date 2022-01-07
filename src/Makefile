@@ -28,7 +28,7 @@ ifeq ($(KERNEL),Linux)
 endif
 
 ### Executable name
-EXE = fat_titz
+EXE = fat_titz_2
 
 ### Installation dir definitions
 PREFIX = /usr/local
