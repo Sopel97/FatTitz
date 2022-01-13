@@ -80,10 +80,10 @@ int search_explosion(Position* thisThread) {
 // Reductions lookup tables, initialized at startup
 static int Reductions[MAX_MOVES]; // [depth or moveNumber]
 
-INLINE Depth reduction(int i, Depth d, int mn, bool rangeReduction)
+INLINE Depth reduction(int i, Depth d, int mn)
 {
   int r = Reductions[d] * Reductions[mn];
-  return (r + 534) / 1024 + (!i && r > 904) + rangeReduction;
+  return (r + 534) / 1024 + (!i && r > 904);
 }
 
 INLINE int futility_move_count(bool improving, Depth depth)
@@ -1140,7 +1140,7 @@ moves_loop: // When in check search starts from here
       moveCountPruning = moveCount >= futility_move_count(improving, depth);
 
       // Reduced depth of the next LMR search
-      int lmrDepth = max(newDepth - reduction(improving, depth, moveCount, rangeReduction > 2), 0);
+      int lmrDepth = max(newDepth - reduction(improving, depth, moveCount), 0);
 
       if (   captureOrPromotion
           || givesCheck)
@@ -1293,7 +1293,7 @@ moves_loop: // When in check search starts from here
             || !captureOrPromotion
             || (cutNode && (ss-1)->moveCount > 1)))
     {
-      Depth r = reduction(improving, depth, moveCount, rangeReduction > 2);
+      Depth r = reduction(improving, depth, moveCount);
 
       if (   PvNode
           && bestMoveCount <= 3
