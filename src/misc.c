@@ -54,7 +54,7 @@ void print_engine_info(bool to_uci)
 {
   char my_date[64];
 
-  printf("Fat Titz %s", Version);
+  printf("Fat Titz 2 %s", Version);
 
   if (strlen(Version) == 0) {
     int day, month, year;
