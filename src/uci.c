@@ -297,7 +297,7 @@ void uci_loop(int argc, char **argv)
         Threads.stop = true;
         LOCK(Threads.lock);
         if (Threads.sleeping)
-          thread_wake_up(threads_main(), THREAD_RESUME);
+          thread_wake_up(threads_main(), _THREAD_RESUME);
         Threads.sleeping = false;
         UNLOCK(Threads.lock);
       }
@@ -309,7 +309,7 @@ void uci_loop(int argc, char **argv)
       LOCK(Threads.lock);
       if (Threads.sleeping) {
         Threads.stop = true;
-        thread_wake_up(threads_main(), THREAD_RESUME);
+        thread_wake_up(threads_main(), _THREAD_RESUME);
         Threads.sleeping = false;
       }
       UNLOCK(Threads.lock);
