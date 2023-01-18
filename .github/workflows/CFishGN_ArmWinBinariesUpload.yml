@@ -88,9 +88,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          overwrite: true
+          overwrite: false
           file: "CFishGN_modern.exe"
-          update_latest_release: true
+          update_latest_release: false
         
       - uses: actions/upload-artifact@v3
         if: ${{ matrix.config.run_win11_build }}
