@@ -867,7 +867,7 @@ static Value fix_FRC(const Position *pos)
 }
 
 #define adjusted_NNUE() \
-  (nnue_evaluate(pos, true) * (903 + mat) / 1024 \
+  (nnue_evaluate(pos, true) * (883 + mat) / 1024 \
    + (is_chess960() ? fix_FRC(pos) : 0))
 
 #endif
@@ -882,7 +882,7 @@ Value evaluate(const Position *pos)
   if (useNNUE == EVAL_HYBRID) {
     Value psq = abs(eg_value(psq_score()));
     int r50 = rule50_count();
-    bool classical = psq * 5 > (750 + non_pawn_material() / 64) * (5 + r50);
+    bool classical = psq * 5 > (850 + non_pawn_material() / 64) * (5 + r50);
 
     v = classical ? evaluate_classical(pos)
                   : adjusted_NNUE();
