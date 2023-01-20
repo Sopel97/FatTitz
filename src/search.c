@@ -1277,22 +1277,20 @@ moves_loop: // When in check search starts from here
 
       // Increase reduction for cut nodes (~3 Elo)
       if (cutNode && move != ss->killers[0])
-          r += 2;
+        r += 2;
 
-      if (!captureOrPromotion) {
-        // Increase reduction if ttMove is a capture
-        if (ttCapture)
-          r++;
+      // Increase reduction if ttMove is a capture
+      if (ttCapture)
+        r++;
 
-        ss->statScore =  (*cmh )[movedPiece][to_sq(move)]
-                       + (*fmh )[movedPiece][to_sq(move)]
-                       + (*fmh2)[movedPiece][to_sq(move)]
-                       + (*pos->mainHistory)[!stm()][from_to(move)]
-                       - 4923;
+      ss->statScore =  (*cmh )[movedPiece][to_sq(move)]
+                     + (*fmh )[movedPiece][to_sq(move)]
+                     + (*fmh2)[movedPiece][to_sq(move)]
+                     + (*pos->mainHistory)[!stm()][from_to(move)]
+                     - 4923;
 
-        if (!inCheck)
-          r -= ss->statScore / 14721;
-      }
+      if (!inCheck)
+        r -= ss->statScore / 14721;
 
       Depth d = clamp(newDepth - r, 1, newDepth + (r < -1 && moveCount <= 5 && !doubleExtension));
 
