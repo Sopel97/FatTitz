@@ -3,11 +3,9 @@ This is a fork of [Cfish](https://github.com/syzygy1/Cfish) (author syzygy1) and
 
 The main purpose of this fork is to release Android and Windows binaries of [Lost CFishes](https://github.com/Joachim26/CFishGN/releases) which were never released by their original authors syzygy1 and Sopel97 or others. 
 
-The [releases](https://github.com/Joachim26/CFishGN/releases) start with the last development version of CFish and end with FatTitz v2.0. All Android builds were (identically) compiled on Termux with clang while all Windows builds were automatically compiled, as identical as possible, with GitHub Actions using msys2 and mingw.
+The [releases](https://github.com/Joachim26/CFishGN/releases) start with the last development version of original CFish and end with FatTitz v2.0. All Android builds were (identically) compiled on Termux with clang while all Windows builds were automatically compiled, as identical as possible, with GitHub Actions using msys2 and mingw.
 
-A first Arena 2000 STC games match shows that CFishGN_pTT is 11 (+/-11) Elo weaker than CFishGNv2 aka FatTitz v2.0.
-
-More CuteChess tournaments are shown [here](https://github.com/Joachim26/CFishGN/releases/tag/LastNNUEv3CFish)
+CuteChess tournaments for various dev builds are presented in the [release section](https://github.com/Joachim26/CFishGN/releases).
 
 # Cfish
 This is a C port of Stockfish.
