@@ -11,13 +11,6 @@ jobs:
     strategy:
       matrix:
         config:
-          - name: Ubuntu 22.04 NDK armv8
-            os: ubuntu-22.04
-            compiler: aarch64-linux-android21-clang++
-            comp: ndk
-            run_armv8_build: false
-            shell: bash {0}
-            
           - name: Windows 2022 Mingw-w64 GCC x86_64
             os: windows-2022
             compiler: gcc
@@ -45,34 +38,6 @@ jobs:
 
       - name: Download the network from the fishtest framework
         run: make net
-
-      - name: armv8 build
-        if: ${{ matrix.config.run_armv8_build }}
-        run: |
-            export PATH=$ANDROID_NDK_HOME:$PATH
-            export PATH=$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH
-
-            cp nn-*.nnue ../jni
-            cd ../jni
-            cp Application_v8.mk Application.mk
-            ndk-build
-            cd ../libs/arm64-v8a
-            cp Stockfish ../../SFSnps_armv8
-           
-      - uses: xresloader/upload-to-github-release@v1
-        if: ${{ matrix.config.run_armv8_build }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          overwrite: true
-          file: "SFSnps_armv8" 
-          update_latest_release: true
-              
-      - uses: actions/upload-artifact@v3
-        if: ${{ matrix.config.run_armv8_build }}
-        with:
-          name: SFSnps-armv8
-          path: SFSnps_armv8
        
       - name: win11 build
         if: ${{ matrix.config.run_win11_build }}
@@ -87,9 +52,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          overwrite: true
+          overwrite: false
           file: "CFishGN_modern.exe"
-          update_latest_release: true
+          update_latest_release: false
         
       - uses: actions/upload-artifact@v3
         if: ${{ matrix.config.run_win11_build }}
