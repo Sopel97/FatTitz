@@ -907,7 +907,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
       && (ss-1)->statScore < 23767
       && eval >= beta
       && eval >= ss->staticEval
-      && ss->staticEval >= beta - 20 * depth - 22 * improving + 168 * ss->ttPv + 159
+      && ss->staticEval >= beta - 20 * depth - 22 * improving + 168 * ss->ttPv + 168 //orig 159
       && !excludedMove
       && non_pawn_material_c(stm())
       && (ss->ply >= pos->nmpMinPly || stm() != pos->nmpColor))
@@ -1131,7 +1131,7 @@ moves_loop: // When in check search starts from here
 
         // Futility pruning: parent node
         if (   !inCheck
-            && ss->staticEval + 174 + 157 * lmrDepth <= alpha
+            && ss->staticEval + 173 + 157 * lmrDepth <= alpha //orig 174
             &&  (*cmh )[movedPiece][to_sq(move)]
               + (*fmh )[movedPiece][to_sq(move)]
               + (*fmh2)[movedPiece][to_sq(move)]
