@@ -1004,13 +1004,11 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   }
 
   // Step 10. If the position is not in TT, decrease depth by 2 or 1 depending on node type
-  if (PvNode && depth >= 6 && !ttMove)
-    depth -= 2;
+  if (PvNode && depth >= 8 && !ttMove)  //orig 6
+      depth -= 2;
 
-  if (   cutNode
-      && depth >= 9
-      && !ttMove)
-    depth--;
+  if (cutNode && depth >= 11 && !ttMove) //orig 9
+      depth--;
 
 moves_loop: // When in check search starts from here
 
