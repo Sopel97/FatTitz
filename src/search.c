@@ -1214,8 +1214,8 @@ moves_loop: // When in check search starts from here
 
         // Avoid search explosion by limiting the number of double extensions
         if (   !PvNode
-            && value < singularBeta - 93
-            && ss->doubleExtensions < 3)
+            && value < singularBeta - 90  //Orig - 93
+            && ss->doubleExtensions < 4)  //Orig < 3
         {
           extension = 2;
           noLMRExtension = true;
