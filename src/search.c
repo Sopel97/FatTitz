@@ -507,7 +507,7 @@ void thread_search(Position *pos)
       // Reset aspiration window starting size
       if (pos->rootDepth >= 4) {
         Value previousScore = rm->move[pvIdx].previousScore;
-        delta = 17+ (int)previousScore * previousScore / 16384;
+        delta = 17+ (int)previousScore * previousScore / 32768;   //Orig 16384
         alpha = max(previousScore - delta, -VALUE_INFINITE);
         beta  = min(previousScore + delta,  VALUE_INFINITE);
 
@@ -1339,7 +1339,7 @@ moves_loop: // When in check search starts from here
       int deeper =   r >= -1                   ? 0
                    : moveCount <= 5            ? 2
                    : (PvNode && depth > 6)     ? 1
-                   : cutNode && moveCount <= 7 ? 1
+                   : cutNode && moveCount <= 4 ? 1  //Orig 7
                    :                             0;
 
       Depth d = clamp(newDepth - r, 1, newDepth + deeper);
