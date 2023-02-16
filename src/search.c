@@ -937,7 +937,7 @@ INLINE Value search_node(Position *pos, Stack *ss, Value alpha, Value beta,
   if (   !PvNode
       &&  depth < 9
       &&  eval - futility_margin(depth, improving) >= beta
-      &&  eval < 15000) // 50% larger than VALUE_KNOWN_WIN, but smaller than TB wins.
+      &&  eval < 9999) //Orig 15000: 50% larger than VALUE_KNOWN_WIN, but smaller than TB wins.
     return eval; // - futility_margin(depth); (do not do the right thing)
 
   // Step 8. Null move search with verification search (is omitted in PV nodes)
