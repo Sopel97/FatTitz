@@ -1409,7 +1409,7 @@ moves_loop: // When in check search starts from here
           break;
         }
 
-      rm->averageScore = rm->averageScore != -VALUE_INFINITE ? (value + rm->averageScore) / 2 : value;  //Orig 2*  /3
+      rm->averageScore = rm->averageScore != -VALUE_INFINITE ? (3 * value + rm->averageScore) / 4 : value;  //Orig 2*  /3
 
       // PV move or new best move ?
       if (moveCount == 1 || value > alpha) {
