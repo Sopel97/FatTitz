@@ -507,7 +507,7 @@ void thread_search(Position *pos)
       // Reset aspiration window starting size
       if (pos->rootDepth >= 4) {
         Value previousScore = rm->move[pvIdx].averageScore;
-        delta = 17+ (int)previousScore * previousScore / 16384;   //Orig 16384
+        delta = 17 + (int)previousScore * previousScore / 16384;   //Orig 16384
         alpha = max(previousScore - delta, -VALUE_INFINITE);
         beta  = min(previousScore + delta,  VALUE_INFINITE);
 
@@ -1409,7 +1409,7 @@ moves_loop: // When in check search starts from here
           break;
         }
 
-      rm->averageScore = rm->averageScore != -VALUE_INFINITE ? (3 * value + rm->averageScore) / 4 : value;  //Orig 2*  /3
+      rm->averageScore = rm->averageScore != -VALUE_INFINITE ? (2 * value + rm->averageScore) / 3 : value;  //Orig 2*  /3
 
       // PV move or new best move ?
       if (moveCount == 1 || value > alpha) {
