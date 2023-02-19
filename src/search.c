@@ -507,7 +507,7 @@ void thread_search(Position *pos)
       // Reset aspiration window starting size
       if (pos->rootDepth >= 4) {
         Value previousScore = rm->move[pvIdx].averageScore;
-        delta = 17 + (int)previousScore / 32;   //Orig 16384
+        delta = 17 + (int)previousScore + previousScore / 16384;   //Orig 16384
         alpha = max(previousScore - delta, -VALUE_INFINITE);
         beta  = min(previousScore + delta,  VALUE_INFINITE);
 
