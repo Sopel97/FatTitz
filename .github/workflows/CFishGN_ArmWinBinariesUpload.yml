@@ -56,10 +56,8 @@ jobs:
           file: "CFishGN_modern.exe"
           update_latest_release: false
         
-      - uses: actions/upload-artifact@v3
-        if: ${{ matrix.config.run_win11_build }}
-        with:
-          name: CFishGN-modern
-          path: CFishGN_modern.exe
-
-          
+      #- uses: actions/upload-artifact@v3
+      #  if: ${{ matrix.config.run_win11_build }}
+      #  with:
+      #    name: CFishGN-modern
+      #    path: CFishGN_modern.exe
