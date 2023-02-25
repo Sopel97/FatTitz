@@ -879,7 +879,7 @@ Value evaluate(const Position *pos)
 
   if (!classical)
   {
-    int scale =   898
+    int scale =   798   //898
                  + 24 * popcount(pieces_p(PAWN))
                  + 33 * non_pawn_material() / 1024;
 
