@@ -54,7 +54,7 @@ void print_engine_info(bool to_uci)
 {
   char my_date[64];
 
-  printf("Cfish %s", Version);
+  printf("CfishNN %s", Version);
 
   if (strlen(Version) == 0) {
     int day, month, year;
@@ -67,7 +67,7 @@ void print_engine_info(bool to_uci)
     str = strtok(NULL, " "); // year
     year = atoi(str);
 
-    printf("%02d%02d%02d", day, month, year % 100);
+    printf("%02d%02d%02d", year, month, day % 100);
   }
 
   printf(
